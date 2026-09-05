@@ -1,3 +1,6 @@
+
+
+Index · HTML
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -23,321 +26,11 @@ const { useState, useEffect, useCallback } = React;
 // 章(時代)の一覧。旧石器〜飛鳥に問題データあり(2026/09時点)。
 // ※旧石器時代を新設したため全15章構成になっています。
 const CHAPTERS = [
-    {
-        id: "kyusekki",
-        name: "旧石器時代",
-        questions: [
-            {
-                id: "iwajuku_pref",
-                text: "岩宿遺跡の所在地はどこか。",
-                choices: ["群馬県", "栃木県", "長野県", "新潟県"],
-                answerIndex: 0,
-                explanation: "岩宿遺跡は群馬県にあり、相沢忠洋が関東ローム層から打製石器を発見したことで、日本にも旧石器時代があったことが証明された遺跡です。",
-            },
-        ],
-    },
-    {
-        id: "jomon",
-        name: "縄文時代",
-        questions: [
-            {
-                id: "kaizuka_setsumei",
-                text: "貝塚の説明として正しいものはどれか。",
-                choices: [
-                    "稲作の際に使われた石器の跡",
-                    "縄文時代の人々が捨てた貝殻や土器などが積み重なった遺跡",
-                    "古墳の周囲を囲む堀",
-                    "弥生時代の墓の跡",
-                ],
-                answerIndex: 1,
-                explanation: "貝塚は、縄文時代の人々が食べた貝の殻や土器・骨などを捨てた場所が積み重なってできたゴミ捨て場の跡で、当時の生活の様子を知る手がかりになります。",
-            },
-            {
-                id: "oomori_kaizuka_hakken",
-                text: "大森貝塚を発見した人物は誰か。",
-                choices: ["モース", "シュリーマン", "ナウマン", "フェノロサ"],
-                answerIndex: 0,
-                explanation: "大森貝塚は東京都にあり、1877年にアメリカ人動物学者モースが発見・発掘した、日本考古学の出発点となった遺跡です。",
-            },
-            {
-                id: "juukyo_keishiki",
-                text: "縄文時代の人々の主な住居の形式は何か。",
-                choices: ["高床倉庫", "掘立柱建物", "たて穴住居", "書院造"],
-                answerIndex: 2,
-                explanation: "たて穴住居は地面を掘り下げて床を作り、その上に屋根をかけた住居で、縄文時代から古墳時代にかけて広く使われました。",
-            },
-            {
-                id: "doguu_mokuteki",
-                text: "縄文時代、豊かな実りや安産などを祈って作られたと考えられる土製の人形を何というか。",
-                choices: ["埴輪", "土偶", "銅鐸", "須恵器"],
-                answerIndex: 1,
-                explanation: "土偶は女性をかたどったものが多く、豊かな収穫や子孫繁栄、病気からの回復などを祈る儀式に使われたと考えられています。",
-            },
-            {
-                id: "marukibune",
-                text: "縄文時代、黒曜石などの交易にも使われた、丸太をくりぬいて作った船を何というか。",
-                choices: ["丸木舟", "遣唐使船", "いかだ", "関船"],
-                answerIndex: 0,
-                explanation: "丸木舟は一本の丸太をくりぬいて作った舟で、黒曜石など離れた地域の産物を運ぶ交易にも使われました。",
-            },
-            {
-                id: "sannai_maruyama_pref",
-                text: "三内丸山遺跡の所在地はどこか。",
-                choices: ["秋田県", "青森県", "岩手県", "北海道"],
-                answerIndex: 1,
-                explanation: "三内丸山遺跡は青森県にある縄文時代の大規模集落跡で、大型掘立柱建物の跡や豊富な出土品から当時の暮らしがわかります。",
-            },
-        ],
-    },
-    {
-        id: "yayoi",
-        name: "弥生時代",
-        questions: [
-            {
-                id: "inasaku_denrai",
-                text: "弥生時代に大陸から伝わり、人々の生活を大きく変えた農業技術は何か。",
-                choices: ["畑作", "稲作", "牧畜", "焼畑農業"],
-                answerIndex: 1,
-                explanation: "稲作は縄文時代の終わり頃から弥生時代にかけて大陸から伝わり、人々の生活を狩猟・採集中心から定住・農耕中心へと大きく変えました。",
-            },
-            {
-                id: "takayuka_souko",
-                text: "弥生時代、収穫した米を保存するために床を高くして作られた倉庫を何というか。",
-                choices: ["高床倉庫", "正倉院", "たて穴倉庫", "石倉"],
-                answerIndex: 0,
-                explanation: "高床倉庫は床を地面より高くすることで、湿気やねずみの害を防ぎ、収穫した米を保存するために作られました。",
-            },
-            {
-                id: "nezumigaeshi",
-                text: "高床倉庫の柱に取り付けられた、ねずみの侵入を防ぐための工夫を何というか。",
-                choices: ["鼠返し", "結界", "堀切", "土塁"],
-                answerIndex: 0,
-                explanation: "鼠返しは高床倉庫の柱の途中に取り付けられた板状の仕掛けで、ねずみが柱を伝って倉庫内に侵入するのを防ぎました。",
-            },
-            {
-                id: "ishibouchou",
-                text: "弥生時代、稲の穂を刈り取るために使われた石製の道具を何というか。",
-                choices: ["石包丁", "石斧", "石皿", "打製石器"],
-                answerIndex: 0,
-                explanation: "石包丁は片手で握れる大きさの石製の道具で、稲の穂を一本ずつ摘み取る穂首刈りに使われました。",
-            },
-            {
-                id: "doutaku",
-                text: "弥生時代に祭りの道具として使われた、青銅製の釣り鐘状の道具を何というか。",
-                choices: ["銅鏡", "銅鐸", "銅剣", "銅矛"],
-                answerIndex: 1,
-                explanation: "銅鐸は青銅でできた釣り鐘型の道具で、表面に描かれた絵から農耕に関わる祭りの道具だったと考えられています。",
-            },
-            {
-                id: "kankou_shuuraku_basho",
-                text: "環濠と柵に囲まれた大規模な集落跡で、邪馬台国との関連が指摘される遺跡はどこにあるか。",
-                choices: ["佐賀県", "福岡県", "奈良県", "静岡県"],
-                answerIndex: 0,
-                explanation: "佐賀県の吉野ヶ里遺跡は、周囲を濠と柵で囲んだ大規模な環濠集落跡で、物見やぐらや墓の跡などから邪馬台国との関連も指摘されています。",
-            },
-            {
-                id: "himiko",
-                text: "中国の歴史書『魏志』倭人伝に記された、3世紀頃の倭にあった国の女王は誰か。",
-                choices: ["推古天皇", "卑弥呼", "持統天皇", "神功皇后"],
-                answerIndex: 1,
-                explanation: "卑弥呼は3世紀頃、倭にあった小国連合・邪馬台国を、まじないの力を用いて治めたとされる女王です。",
-            },
-            {
-                id: "kidou",
-                text: "卑弥呼が国を治める際に用いたとされる、まじないのような力を何というか。",
-                choices: ["鬼道", "神道", "仏道", "儒道"],
-                answerIndex: 0,
-                explanation: "鬼道は卑弥呼が用いたとされるまじない・呪術のことで、人々の心をまとめる政治的な力として機能したと考えられています。",
-            },
-            {
-                id: "suiden_ato",
-                text: "弥生時代の水田跡が見つかった代表的な遺跡はどこにあるか。",
-                choices: ["静岡県", "佐賀県", "青森県", "奈良県"],
-                answerIndex: 0,
-                explanation: "静岡県の登呂遺跡では、弥生時代の水田跡や住居跡、農具などがまとまって発見され、当時の稲作の様子がよくわかります。",
-            },
-            {
-                id: "itazuke_pref",
-                text: "板付遺跡の所在地はどこか。",
-                choices: ["佐賀県", "長崎県", "福岡県", "熊本県"],
-                answerIndex: 2,
-                explanation: "板付遺跡は福岡県にあり、日本列島でも早い時期の水田跡が見つかったことで知られる弥生時代の遺跡です。",
-            },
-            {
-                id: "kangou_shuuraku_meishou",
-                text: "弥生時代、周囲を堀で囲んで敵の侵入を防いだ集落を何というか。",
-                choices: ["高床集落", "環濠集落", "竪穴集落", "環状集落"],
-                answerIndex: 1,
-                explanation: "環濠集落は、敵の攻撃や動物の侵入を防ぐために、集落の周囲を堀(濠)で囲んだむらのことです。",
-            },
-            {
-                id: "shingi_wao",
-                text: "卑弥呼が魏の皇帝から授けられた称号は何か。",
-                choices: ["親魏倭王", "征夷大将軍", "大王", "倭王武"],
-                answerIndex: 0,
-                explanation: "卑弥呼は魏に使いを送った際、皇帝から「親魏倭王」の称号と金印、銅鏡などを授けられたと『魏志』倭人伝に記されています。",
-            },
-            {
-                id: "sankakubuchi_shinjuukyou",
-                text: "卑弥呼が魏からもらったとされる青銅製の鏡は何か。",
-                choices: ["三角縁神獣鏡", "銅鐸", "須恵器", "埴輪"],
-                answerIndex: 0,
-                explanation: "三角縁神獣鏡は縁の断面が三角形になっている銅鏡で、卑弥呼が魏からもらったものの一種と考えられ、各地の古墳から出土しています。",
-            },
-        ],
-    },
-    {
-        id: "kofun",
-        name: "古墳時代",
-        questions: [
-            {
-                id: "haniwa",
-                text: "古墳の頂上や周囲に並べられた、人物・動物・家などをかたどった素焼きの土製品を何というか。",
-                choices: ["土偶", "埴輪", "須恵器", "土師器"],
-                answerIndex: 1,
-                explanation: "埴輪は古墳の頂上や周囲に並べられた素焼きの土製品で、人物・動物・家などをかたどり、古墳の権威を示す役割があったと考えられています。",
-            },
-            {
-                id: "torairnin",
-                text: "4〜5世紀頃、大陸から日本に移り住み、須恵器や機織りなどの進んだ技術を伝えた人々を何というか。",
-                choices: ["渡来人", "遣唐使", "蝦夷", "隼人"],
-                answerIndex: 0,
-                explanation: "渡来人は4〜5世紀頃に大陸から日本へ移り住んだ人々で、須恵器・機織り・漢字・仏教など進んだ技術や文化を伝えました。",
-            },
-            {
-                id: "wakatakeru",
-                text: "熊本県の江田船山古墳と埼玉県の稲荷山古墳から出土した鉄刀・鉄剣に共通して刻まれていた大王の名は何か。",
-                choices: ["ワカタケル大王", "仁徳天皇", "応神天皇", "継体天皇"],
-                answerIndex: 0,
-                explanation: "熊本県の江田船山古墳と埼玉県の稲荷山古墳の鉄刀・鉄剣にはともに「ワカタケル大王」の名が刻まれており、当時のヤマト政権の勢力範囲の広さがうかがえます。",
-            },
-            {
-                id: "ujikabane_seido",
-                text: "ヤマト政権が豪族を血縁関係のある集団に組織し、家柄に応じて世襲の役職を与えた仕組みを何というか。",
-                choices: ["班田収授法", "氏姓制度", "冠位十二階", "十七条の憲法"],
-                answerIndex: 1,
-                explanation: "氏姓制度は、ヤマト政権が豪族を血縁関係のある「氏」に組織し、「姓」という家柄を表す称号を与えて、世襲で役職につかせた仕組みです。",
-            },
-            {
-                id: "bukkyou_denrai",
-                text: "6世紀、百済の聖明王から日本に正式に伝えられたとされる宗教は何か。",
-                choices: ["儒教", "仏教", "道教", "神道"],
-                answerIndex: 1,
-                explanation: "仏教は6世紀に百済の聖明王から日本の朝廷に正式に伝えられ、その後蘇我氏らによって広められました。",
-            },
-        ],
-    },
-    {
-        id: "asuka",
-        name: "飛鳥時代",
-        questions: [
-            {
-                id: "kan_i_juni_kai",
-                text: "603年、聖徳太子が家柄によらず能力に応じて役人を登用するために定めた制度を何というか。",
-                choices: ["十七条の憲法", "冠位十二階", "氏姓制度", "班田収授法"],
-                answerIndex: 1,
-                explanation: "冠位十二階は603年に聖徳太子が定めた制度で、家柄ではなく個人の能力や功績に応じて役人を登用しようとしたものです。",
-            },
-            {
-                id: "kenzuishi",
-                text: "607年、聖徳太子が隋に対等な外交を求めて小野妹子を派遣した使節を何というか。",
-                choices: ["遣唐使", "遣隋使", "朝貢使", "遣新羅使"],
-                answerIndex: 1,
-                explanation: "遣隋使は607年に聖徳太子が小野妹子を隋に派遣した使節で、対等な立場での外交を目指した国書を持たせたことで知られます。",
-            },
-            {
-                id: "hakusukinoe_no_tatakai",
-                text: "663年、百済復興を助けるために送られた倭の軍が唐・新羅連合軍に敗れた戦いを何というか。",
-                choices: ["壬申の乱", "白村江の戦い", "大化の改新", "文永の役"],
-                answerIndex: 1,
-                explanation: "白村江の戦いは663年、百済の復興を助けるために送られた倭の軍が、唐と新羅の連合軍に敗れた戦いです。",
-            },
-            {
-                id: "suiko_tennou",
-                text: "聖徳太子が摂政として仕えた、日本最初の女性天皇は誰か。",
-                choices: ["持統天皇", "推古天皇", "皇極天皇", "元明天皇"],
-                answerIndex: 1,
-                explanation: "推古天皇は日本で最初の女性天皇とされ、甥の聖徳太子を摂政として政治を任せました。",
-            },
-            {
-                id: "sesshou",
-                text: "天皇が幼少・女性である場合などに、天皇に代わって政治を行う役職を何というか。",
-                choices: ["関白", "摂政", "征夷大将軍", "太政大臣"],
-                answerIndex: 1,
-                explanation: "摂政は、天皇が幼少であったり女性であったりする場合に、天皇に代わって政治を行う役職です。",
-            },
-            {
-                id: "juushichijou_kenpou",
-                text: "聖徳太子が604年に定めた、役人の心構えを示した法を何というか。",
-                choices: ["冠位十二階", "十七条の憲法", "大宝律令", "養老律令"],
-                answerIndex: 1,
-                explanation: "十七条の憲法は604年に聖徳太子が定めた、役人の心構えを示した規範で、「和を以て貴しとなす」の一文でも知られます。",
-            },
-            {
-                id: "houryuuji",
-                text: "聖徳太子が奈良県斑鳩に建てた、現存する世界最古の木造建築とされる寺院は何か。",
-                choices: ["東大寺", "法隆寺", "唐招提寺", "薬師寺"],
-                answerIndex: 1,
-                explanation: "法隆寺は聖徳太子が奈良県斑鳩に建てた寺院で、現存する世界最古の木造建築群として知られています。",
-            },
-            {
-                id: "taika_no_kaishin",
-                text: "645年、中大兄皇子や中臣鎌足らが蘇我氏を滅ぼして始めた、天皇中心の政治を目指す一連の改革を何というか。",
-                choices: ["壬申の乱", "大化の改新", "乙巳の変", "大宝律令の制定"],
-                answerIndex: 1,
-                explanation: "大化の改新は645年、中大兄皇子と中臣鎌足らが蘇我氏を滅ぼした乙巳の変をきっかけに始まった、天皇中心の政治を目指す一連の改革です。",
-            },
-            {
-                id: "nakatomi_kamatari",
-                text: "大化の改新で中大兄皇子とともに中心となり、のちに藤原氏の祖となった人物は誰か。",
-                choices: ["蘇我入鹿", "中臣鎌足", "中大兄皇子", "蘇我馬子"],
-                answerIndex: 1,
-                explanation: "中臣鎌足は大化の改新で中大兄皇子とともに中心となって活躍し、のちに藤原の姓を与えられて藤原氏の祖となりました。",
-            },
-            {
-                id: "jinshin_no_ran",
-                text: "672年、天智天皇のあとつぎをめぐって大海人皇子と大友皇子の間で起こった争いを何というか。",
-                choices: ["白村江の戦い", "壬申の乱", "大化の改新", "乙巳の変"],
-                answerIndex: 1,
-                explanation: "壬申の乱は672年、天智天皇の死後、あとつぎの座をめぐって大海人皇子と大友皇子の間で起こった争いです。",
-            },
-            {
-                id: "tenmu_tennou",
-                text: "壬申の乱に勝利し、即位して天皇の権威を高めた人物は誰か。",
-                choices: ["天智天皇", "天武天皇", "持統天皇", "文武天皇"],
-                answerIndex: 1,
-                explanation: "天武天皇は壬申の乱に勝利して即位し、天皇を中心とした国づくりを進めて天皇の権威を大きく高めました。",
-            },
-            {
-                id: "kudara_horobi",
-                text: "663年の白村江の戦いで倭が助けようとした、660年に唐・新羅連合軍によって滅ぼされた国はどこか。",
-                choices: ["新羅", "百済", "高句麗", "伽耶(加羅)"],
-                answerIndex: 1,
-                explanation: "百済は朝鮮半島にあった国の一つで、660年に唐と新羅の連合軍によって滅ぼされ、その復興を助けようとした倭が白村江の戦いに敗れました。",
-            },
-            {
-                id: "shiragi_shouri",
-                text: "白村江の戦いで倭・百済連合軍を破った、朝鮮半島東南部の国はどこか。",
-                choices: ["百済", "高句麗", "新羅", "唐"],
-                answerIndex: 2,
-                explanation: "新羅は朝鮮半島東南部にあった国で、白村江の戦いでは唐と連合して倭・百済連合軍を破りました。",
-            },
-            {
-                id: "koukuri_horobi",
-                text: "668年に唐・新羅連合軍によって滅ぼされた、朝鮮半島北部の国はどこか。",
-                choices: ["百済", "新羅", "高句麗", "渤海"],
-                answerIndex: 2,
-                explanation: "高句麗は朝鮮半島北部にあった国で、668年に唐と新羅の連合軍によって滅ぼされました。",
-            },
-            {
-                id: "hakuhou_bunka",
-                text: "7世紀後半、天武・持統天皇の頃に栄えた、仏教文化を基調とする文化を何というか。",
-                choices: ["飛鳥文化", "白鳳文化", "天平文化", "国風文化"],
-                answerIndex: 1,
-                explanation: "白鳳文化は7世紀後半、天武・持統天皇の頃に栄えた、仏教を基調とする若々しく生き生きとした文化です。",
-            },
-        ],
-    },
+    { id: "kyusekki", name: "旧石器時代", questions: [] },
+    { id: "jomon", name: "縄文時代", questions: [] },
+    { id: "yayoi", name: "弥生時代", questions: [] },
+    { id: "kofun", name: "古墳時代", questions: [] },
+    { id: "asuka", name: "飛鳥時代", questions: [] },
     { id: "nara", name: "奈良時代", questions: [] },
     { id: "heian", name: "平安時代", questions: [] },
     { id: "kamakura", name: "鎌倉時代", questions: [] },
@@ -566,6 +259,7 @@ function App() {
     const [correctCount, setCorrectCount] = useState(0);
     const [albumProgress, setAlbumProgress] = useState({});
     const [loading, setLoading] = useState(true);
+    const [questionsLoaded, setQuestionsLoaded] = useState(false);
     const [progress, setProgress] = useState(() => loadProgress());
     const [wrongInSession, setWrongInSession] = useState([]);
     const [masteredChecked, setMasteredChecked] = useState(false);
@@ -587,6 +281,17 @@ function App() {
         finally {
             setLoading(false);
         }
+    }, []);
+    // 問題データを時代ごとの外部JSON(questions/<id>.json)から読み込む
+    useEffect(() => {
+        Promise.all(CHAPTERS.map((c) =>
+            fetch("questions/" + c.id + ".json")
+                .then((res) => res.ok ? res.json() : [])
+                .catch(() => [])
+        )).then((results) => {
+            CHAPTERS.forEach((c, i) => { c.questions = results[i]; });
+            setQuestionsLoaded(true);
+        });
     }, []);
     const saveAlbumProgress = useCallback((next) => {
         try {
@@ -741,7 +446,7 @@ function App() {
         React.createElement("div", { style: styles.headerRow },
             React.createElement("h1", { style: styles.title }, "\u30AF\u30A4\u30BA\u6B74\u53F2\u30AA\u30CD\u30A2"),
             view !== "home" && (React.createElement("button", { style: styles.albumBtn, onClick: () => setView("home") }, "\u30DB\u30FC\u30E0\u3078"))),
-        loading ? (React.createElement("div", { style: styles.card },
+        (loading || !questionsLoaded) ? (React.createElement("div", { style: styles.card },
             React.createElement("p", { style: styles.loadingText }, "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026"))) : view === "home" ? (React.createElement(HomeView, { onStart: startQuiz, onChapters: () => setView("chapters"), onAlbum: () => setView("album"), availableQuestionCount: availableQuestionCount, unlockedCount: ALBUM_ERAS.reduce((sum, era) => {
                 const s = albumProgress[era.id] || { unlockedCardIds: [], specialUnlocked: false };
                 return sum + s.unlockedCardIds.length + (s.specialUnlocked ? 1 : 0);
@@ -1243,9 +948,12 @@ const styles = {
         cursor: "pointer",
     },
 };
-
-
+ 
+ 
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 </script>
 </body>
 </html>
+ 
+
+
