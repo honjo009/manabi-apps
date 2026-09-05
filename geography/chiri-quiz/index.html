@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>地理クイズ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #F7F3E8; }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+"use strict";
+const { useState, useEffect, useMemo, useCallback } = React;
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+function IconBase({ size = 16, color = "currentColor", children }) {
+  return /* @__PURE__ */ React.createElement(
+    "svg",
+    {
+      width: size,
+      height: size,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: color,
+      strokeWidth: 2,
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    },
+    children
+  );
+}
+function IconCheck(props) {
+  return /* @__PURE__ */ React.createElement(IconBase, __spreadValues({}, props), /* @__PURE__ */ React.createElement("polyline", { points: "20 6 9 17 4 12" }));
+}
+function IconX(props) {
+  return /* @__PURE__ */ React.createElement(IconBase, __spreadValues({}, props), /* @__PURE__ */ React.createElement("line", { x1: "18", y1: "6", x2: "6", y2: "18" }), /* @__PURE__ */ React.createElement("line", { x1: "6", y1: "6", x2: "18", y2: "18" }));
+}
+function IconRotateCcw(props) {
+  return /* @__PURE__ */ React.createElement(IconBase, __spreadValues({}, props), /* @__PURE__ */ React.createElement("polyline", { points: "1 4 1 10 7 10" }), /* @__PURE__ */ React.createElement("path", { d: "M3.51 15a9 9 0 1 0 .49-9.36L1 10" }));
+}
+function IconTrophy(props) {
+  return /* @__PURE__ */ React.createElement(IconBase, __spreadValues({}, props), /* @__PURE__ */ React.createElement("path", { d: "M8 21h8" }), /* @__PURE__ */ React.createElement("path", { d: "M12 17v4" }), /* @__PURE__ */ React.createElement("path", { d: "M7 4h10v5a5 5 0 0 1-10 0V4z" }), /* @__PURE__ */ React.createElement("path", { d: "M17 5h3a2 2 0 0 1-2 4h-1" }), /* @__PURE__ */ React.createElement("path", { d: "M7 5H4a2 2 0 0 0 2 4h1" }));
+}
+function IconChevronRight(props) {
+  return /* @__PURE__ */ React.createElement(IconBase, __spreadValues({}, props), /* @__PURE__ */ React.createElement("polyline", { points: "9 18 15 12 9 6" }));
+}
+function buildOptions(q) {
+  if (q.type === "single") return shuffle([q.correct, ...q.wrong]);
+  if (q.type === "multi") return shuffle([...q.correct, ...q.wrong]);
+  if (q.type === "exclude") return q.options;
+  return null;
+}
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+const REGION_DEFS = [
+  { id: "kanto", name: "\u95A2\u6771" },
+  { id: "kinki", name: "\u8FD1\u757F" },
+  { id: "kyushu", name: "\u4E5D\u5DDE" },
+  { id: "chugoku_shikoku", name: "\u4E2D\u56FD\u30FB\u56DB\u56FD" }
+];
+const REGION_NAME_TO_ID = Object.fromEntries(REGION_DEFS.map((r) => [r.name, r.id]));
+const ALBUM_REGIONS = [
+  {
+    id: "kanto",
+    name: "\u95A2\u6771",
+    cards: [
+      { id: "kanto_keihin", name: "\u4EAC\u6D5C\u5DE5\u696D\u5730\u5E2F", image: null, emoji: "\u{1F3ED}", desc: "\u6771\u4EAC\u6E7E\u5CB8\u306B\u5E83\u304C\u308B\u3001\u65E5\u672C\u6700\u5927\u7D1A\u306E\u5DE5\u696D\u5730\u5E2F\u3002" },
+      { id: "kanto_tonegawa", name: "\u5229\u6839\u5DDD\u3068\u6C34\u90F7", image: null, emoji: "\u{1F6A4}", desc: "\u95A2\u6771\u5E73\u91CE\u3092\u6D41\u308C\u308B\u5927\u6CB3\u5DDD\u3068\u3001\u6C34\u8DEF\u304C\u767A\u9054\u3057\u305F\u6C34\u90F7\u5730\u5E2F\u3002" },
+      { id: "kanto_tsumagoi", name: "\u5B2C\u604B\u9AD8\u539F\u30AD\u30E3\u30D9\u30C4", image: null, emoji: "\u{1F96C}", desc: "\u590F\u3067\u3082\u6DBC\u3057\u3044\u9AD8\u539F\u3067\u683D\u57F9\u3055\u308C\u308B\u3001\u6291\u5236\u683D\u57F9\u306E\u30AD\u30E3\u30D9\u30C4\u3002" }
+    ],
+    specialCard: { id: "kanto_special", name: "\u95A2\u6771\u7279\u5225\u30AB\u30FC\u30C9:\u6771\u4EAC\u6E7E\u30A2\u30AF\u30A2\u30E9\u30A4\u30F3", image: null, emoji: "\u{1F309}", desc: "\u5343\u8449\u3068\u795E\u5948\u5DDD\u3092\u7D50\u3076\u3001\u6D77\u5E95\u30C8\u30F3\u30CD\u30EB\u3068\u6A4B\u304B\u3089\u306A\u308B\u9053\u8DEF\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+  },
+  {
+    id: "kinki",
+    name: "\u8FD1\u757F",
+    cards: [
+      { id: "kinki_shigaraki", name: "\u4FE1\u697D\u713C", image: null, emoji: "\u{1F99D}", desc: "\u305F\u306C\u304D\u306E\u7F6E\u7269\u3067\u77E5\u3089\u308C\u308B\u3001\u6ECB\u8CC0\u770C\u306E\u4F1D\u7D71\u7684\u306A\u713C\u304D\u7269\u3002" },
+      { id: "kinki_oumi", name: "\u8FD1\u6C5F\u5546\u4EBA", image: null, emoji: "\u{1F9E7}", desc: "\u4EA4\u901A\u306E\u8981\u5730\u3092\u751F\u304B\u3057\u3001\u5168\u56FD\u3067\u6D3B\u8E8D\u3057\u305F\u5546\u4EBA\u305F\u3061\u3002" },
+      { id: "kinki_kumano", name: "\u7D00\u4F0A\u5C71\u5730\u306E\u970A\u5834", image: null, emoji: "\u26E9\uFE0F", desc: "\u90A3\u667A\u306E\u6EDD\u3084\u9AD8\u91CE\u5C71\u3092\u542B\u3080\u3001\u4E16\u754C\u907A\u7523\u306E\u8056\u5730\u3068\u53C2\u8A63\u9053\u3002" }
+    ],
+    specialCard: { id: "kinki_special", name: "\u8FD1\u757F\u7279\u5225\u30AB\u30FC\u30C9:\u7435\u7436\u6E56", image: null, emoji: "\u{1F30A}", desc: "\u65E5\u672C\u6700\u5927\u306E\u6E56\u3067\u3042\u308A\u3001\u8FD1\u757F\u5730\u65B9\u306E\u6C34\u304C\u3081\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+  },
+  {
+    id: "kyushu",
+    name: "\u4E5D\u5DDE",
+    cards: [
+      { id: "kyushu_aso", name: "\u963F\u8607\u306E\u30AB\u30EB\u30C7\u30E9", image: null, emoji: "\u{1F30B}", desc: "\u5DE8\u5927\u306A\u5674\u706B\u306B\u3088\u3063\u3066\u3067\u304D\u305F\u3001\u4E16\u754C\u6700\u5927\u7D1A\u306E\u30AB\u30EB\u30C7\u30E9\u5730\u5F62\u3002" },
+      { id: "kyushu_ariake", name: "\u6709\u660E\u6D77\u306E\u5E72\u62D3", image: null, emoji: "\u{1F980}", desc: "\u9060\u6D45\u306E\u6D77\u3092\u5824\u9632\u3067\u533A\u5207\u3063\u3066\u4F5C\u3089\u308C\u305F\u3001\u5E83\u5927\u306A\u5E72\u62D3\u5730\u3002" },
+      { id: "kyushu_shirasu", name: "\u30B7\u30E9\u30B9\u53F0\u5730\u3068\u3055\u3064\u307E\u3044\u3082", image: null, emoji: "\u{1F360}", desc: "\u6C34\u306F\u3051\u306E\u826F\u3044\u706B\u5C71\u7070\u571F\u58CC\u3092\u751F\u304B\u3057\u305F\u3001\u9E7F\u5150\u5CF6\u306E\u7551\u4F5C\u3002" }
+    ],
+    specialCard: { id: "kyushu_special", name: "\u4E5D\u5DDE\u7279\u5225\u30AB\u30FC\u30C9:\u685C\u5CF6", image: null, emoji: "\u{1F5FB}", desc: "\u9E7F\u5150\u5CF6\u306E\u30B7\u30F3\u30DC\u30EB\u3068\u3057\u3066\u3001\u4ECA\u3082\u5674\u7159\u3092\u4E0A\u3052\u7D9A\u3051\u308B\u6D3B\u706B\u5C71\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+  },
+  {
+    id: "chugoku_shikoku",
+    name: "\u4E2D\u56FD\u30FB\u56DB\u56FD",
+    cards: [
+      { id: "cs_setouchi", name: "\u702C\u6238\u5185\u5DE5\u696D\u5730\u57DF", image: null, emoji: "\u2693", desc: "\u6CE2\u306E\u7A4F\u3084\u304B\u306A\u702C\u6238\u5185\u6D77\u6CBF\u5CB8\u306B\u767A\u9054\u3057\u305F\u5DE5\u696D\u5730\u57DF\u3002" },
+      { id: "cs_shimanami", name: "\u3057\u307E\u306A\u307F\u6D77\u9053", image: null, emoji: "\u{1F6B4}", desc: "\u702C\u6238\u5185\u6D77\u306E\u5CF6\u3005\u3092\u7D50\u3076\u3001\u30B5\u30A4\u30AF\u30EA\u30F3\u30B0\u3067\u3082\u4EBA\u6C17\u306E\u9023\u7D61\u6A4B\u3002" },
+      { id: "cs_izumo", name: "\u51FA\u96F2\u5927\u793E", image: null, emoji: "\u{1F38E}", desc: "\u65E7\u66A610\u6708\u306B\u5168\u56FD\u306E\u795E\u3005\u304C\u96C6\u307E\u308B\u3068\u3055\u308C\u308B\u3001\u5CF6\u6839\u770C\u306E\u795E\u793E\u3002" }
+    ],
+    specialCard: { id: "cs_special", name: "\u4E2D\u56FD\u30FB\u56DB\u56FD\u7279\u5225\u30AB\u30FC\u30C9:\u8B83\u5C90\u306E\u6E9C\u6C60", image: null, emoji: "\u{1F4A7}", desc: "\u96E8\u306E\u5C11\u306A\u3044\u8B83\u5C90\u5E73\u91CE\u3067\u8FB2\u696D\u7528\u6C34\u3092\u78BA\u4FDD\u3059\u308B\u305F\u3081\u306E\u3001\u6570\u591A\u304F\u306E\u6E9C\u6C60\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+  }
+];
+function getRegionLockedCards(albumProgress, region) {
+  const state = albumProgress[region.id] || { unlockedCardIds: [], specialUnlocked: false };
+  return region.cards.filter((c) => !state.unlockedCardIds.includes(c.id));
+}
+function Stamp({ ok }) {
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 64,
+        height: 64,
+        borderRadius: "50%",
+        border: `3px solid ${ok ? "#B7410E" : "#33507A"}`,
+        color: ok ? "#B7410E" : "#33507A",
+        fontFamily: "'Shippori Mincho', serif",
+        fontWeight: 800,
+        fontSize: 13,
+        transform: "rotate(-8deg)",
+        boxShadow: "0 0 0 2px rgba(0,0,0,0.02) inset",
+        flexShrink: 0
+      }
+    },
+    ok ? "\u6B63\u89E3" : "\u4E0D\u6B63\u89E3"
+  );
+}
+const SESSION_SIZE = 10;
+const STORAGE_KEY = "chiri-chishiki-scorelog";
+const ALBUM_STORAGE_KEY = "chiri-chishiki-album:v1";
+const PAIR_COLORS = ["#B7410E", "#1F3A5F", "#5F7A3D", "#8A5FA6", "#C08A2E"];
+const ALL_REGION_NAMES = REGION_DEFS.map((r) => r.name);
+function App() {
+  const [screen, setScreen] = useState("home");
+  const [session, setSession] = useState([]);
+  const [idx, setIdx] = useState(0);
+  const [results, setResults] = useState([]);
+  const [scoreLog, setScoreLog] = useState([]);
+  const [logLoaded, setLogLoaded] = useState(false);
+  const [selectedRegions, setSelectedRegions] = useState(ALL_REGION_NAMES);
+  const [questionsByRegion, setQuestionsByRegion] = useState({});
+  const [questionsLoaded, setQuestionsLoaded] = useState(false);
+  const [albumProgress, setAlbumProgress] = useState({});
+  const [albumLoaded, setAlbumLoaded] = useState(false);
+  const [award, setAward] = useState(null);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) setScoreLog(JSON.parse(raw));
+    } catch (e) {
+    } finally {
+      setLogLoaded(true);
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(ALBUM_STORAGE_KEY);
+      if (raw) setAlbumProgress(JSON.parse(raw));
+    } catch (e) {
+    } finally {
+      setAlbumLoaded(true);
+    }
+  }, []);
+  useEffect(() => {
+    Promise.all(
+      REGION_DEFS.map(
+        (r) => fetch("questions/" + r.id + ".json").then((res) => res.ok ? res.json() : []).catch(() => [])
+      )
+    ).then((results2) => {
+      const map = {};
+      REGION_DEFS.forEach((r, i) => {
+        map[r.id] = results2[i];
+      });
+      setQuestionsByRegion(map);
+      setQuestionsLoaded(true);
+    });
+  }, []);
+  const allQuestions = useMemo(
+    () => REGION_DEFS.flatMap((r) => questionsByRegion[r.id] || []),
+    [questionsByRegion]
+  );
+  const poolCount = useMemo(
+    () => allQuestions.filter((q) => selectedRegions.includes(q.region)).length,
+    [allQuestions, selectedRegions]
+  );
+  const saveAlbumProgress = useCallback((next) => {
+    try {
+      window.localStorage.setItem(ALBUM_STORAGE_KEY, JSON.stringify(next));
+    } catch (e) {
+    }
+  }, []);
+  const awardCard = useCallback(
+    (regionNamesInSession) => {
+      const regionIds = regionNamesInSession.map((n) => REGION_NAME_TO_ID[n]).filter(Boolean);
+      if (regionIds.length === 0) return null;
+      const targetId = regionIds[Math.floor(Math.random() * regionIds.length)];
+      const region = ALBUM_REGIONS.find((r) => r.id === targetId);
+      if (!region) return null;
+      const locked = getRegionLockedCards(albumProgress, region);
+      if (locked.length === 0) {
+        const card2 = region.cards[Math.floor(Math.random() * region.cards.length)];
+        return { region, card: card2, specialCard: null, alreadyOwned: true };
+      }
+      const card = locked[Math.floor(Math.random() * locked.length)];
+      const prevState = albumProgress[region.id] || { unlockedCardIds: [], specialUnlocked: false };
+      const newUnlockedIds = [...prevState.unlockedCardIds, card.id];
+      const justCompleted = newUnlockedIds.length >= region.cards.length && !prevState.specialUnlocked;
+      const newState = {
+        unlockedCardIds: newUnlockedIds,
+        specialUnlocked: prevState.specialUnlocked || justCompleted
+      };
+      const next = __spreadProps(__spreadValues({}, albumProgress), { [region.id]: newState });
+      setAlbumProgress(next);
+      saveAlbumProgress(next);
+      return { region, card, specialCard: justCompleted ? region.specialCard : null, alreadyOwned: false };
+    },
+    [albumProgress, saveAlbumProgress]
+  );
+  const startSession = useCallback(() => {
+    const pool = allQuestions.filter((q) => selectedRegions.includes(q.region));
+    const picked = shuffle(pool).slice(0, Math.min(SESSION_SIZE, pool.length));
+    setSession(picked);
+    setIdx(0);
+    setResults([]);
+    setAward(null);
+    setScreen("quiz");
+  }, [allQuestions, selectedRegions]);
+  const toggleRegion = useCallback((region) => {
+    setSelectedRegions((prev) => {
+      if (prev.includes(region)) {
+        const next = prev.filter((r) => r !== region);
+        return next.length === 0 ? prev : next;
+      }
+      return [...prev, region];
+    });
+  }, []);
+  const handleAnswer = useCallback((ok) => {
+    setResults((r) => [...r, ok]);
+  }, []);
+  const goNext = useCallback(() => {
+    if (idx + 1 >= session.length) {
+      const correctCount = results.filter(Boolean).length;
+      const entry = { date: (/* @__PURE__ */ new Date()).toISOString(), score: correctCount, total: session.length };
+      const newLog = [entry, ...scoreLog].slice(0, 20);
+      setScoreLog(newLog);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(newLog));
+      } catch (e) {
+      }
+      const fullScore = session.length > 0 && correctCount === session.length;
+      const wonAward = fullScore ? awardCard(session.map((q) => q.region)) : null;
+      setAward(wonAward);
+      setScreen("result");
+    } else {
+      setIdx((i) => i + 1);
+    }
+  }, [idx, session, results, scoreLog, awardCard]);
+  const gridBg = {
+    backgroundColor: "#F7F3E8",
+    backgroundImage: "linear-gradient(rgba(31,58,95,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(31,58,95,0.08) 1px, transparent 1px)",
+    backgroundSize: "24px 24px",
+    minHeight: "100vh"
+  };
+  const totalCardCount = ALBUM_REGIONS.reduce((sum, r) => sum + r.cards.length + 1, 0);
+  const unlockedCardCount = ALBUM_REGIONS.reduce((sum, r) => {
+    const s = albumProgress[r.id] || { unlockedCardIds: [], specialUnlocked: false };
+    return sum + s.unlockedCardIds.length + (s.specialUnlocked ? 1 : 0);
+  }, 0);
+  return /* @__PURE__ */ React.createElement("div", { style: gridBg, className: "flex flex-col items-center px-4 py-8" }, /* @__PURE__ */ React.createElement("style", null, `
+        @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        .mincho { font-family: 'Shippori Mincho', serif; }
+        .sans { font-family: 'Noto Sans JP', sans-serif; }
+      `), /* @__PURE__ */ React.createElement("div", { className: "w-full max-w-md" }, /* @__PURE__ */ React.createElement("header", { className: "flex items-center justify-between mb-6" }, /* @__PURE__ */ React.createElement("div", { className: "text-center flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "sans text-xs tracking-widest text-[#33507A] mb-1" }, "\u4E2D\u5B66\u53D7\u9A13\u30FB\u793E\u4F1A \u5730\u7406"), /* @__PURE__ */ React.createElement("h1", { className: "mincho text-2xl font-bold text-[#1F3A5F] border-b-2 border-[#1F3A5F] pb-2 inline-block" }, "\u30AF\u30A4\u30BA\u5730\u7406\u30AA\u30CD\u30A2")), screen !== "home" && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => setScreen("home"),
+      className: "mincho text-xs font-bold text-white px-3 py-2 rounded-sm shrink-0",
+      style: { backgroundColor: "#1F3A5F" }
+    },
+    "\u30DB\u30FC\u30E0\u3078"
+  )), !questionsLoaded ? /* @__PURE__ */ React.createElement("div", { className: "sans text-center text-sm text-[#33507A] bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-6" }, "\u8AAD\u307F\u8FBC\u307F\u4E2D...") : /* @__PURE__ */ React.createElement(React.Fragment, null, screen === "home" && /* @__PURE__ */ React.createElement(
+    HomeScreen,
+    {
+      onStart: startSession,
+      onAlbum: () => setScreen("album"),
+      scoreLog,
+      loaded: logLoaded,
+      poolCount,
+      regions: ALL_REGION_NAMES,
+      selectedRegions,
+      onToggleRegion: toggleRegion,
+      unlockedCardCount,
+      totalCardCount
+    }
+  ), screen === "quiz" && session.length > 0 && /* @__PURE__ */ React.createElement(
+    QuizScreen,
+    {
+      q: session[idx],
+      index: idx,
+      total: session.length,
+      onAnswer: handleAnswer,
+      onNext: goNext
+    }
+  ), screen === "result" && /* @__PURE__ */ React.createElement(
+    ResultScreen,
+    {
+      results,
+      total: session.length,
+      award,
+      onRetry: startSession,
+      onHome: () => setScreen("home")
+    }
+  ), screen === "album" && /* @__PURE__ */ React.createElement(AlbumScreen, { albumProgress, loaded: albumLoaded }))));
+}
+function HomeScreen({ onStart, onAlbum, scoreLog, loaded, poolCount, regions, selectedRegions, onToggleRegion, unlockedCardCount, totalCardCount }) {
+  return /* @__PURE__ */ React.createElement("div", { className: "sans" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-5 mb-5" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold text-[#1F3A5F] mb-2" }, "\u51FA\u984C\u3059\u308B\u5730\u57DF"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mb-4" }, regions.map((r) => {
+    const on = selectedRegions.includes(r);
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: r,
+        onClick: () => onToggleRegion(r),
+        className: "text-xs font-bold px-3 py-1.5 rounded-full border transition",
+        style: on ? { backgroundColor: "#1F3A5F", borderColor: "#1F3A5F", color: "#fff" } : { backgroundColor: "transparent", borderColor: "rgba(31,58,95,0.4)", color: "#1F3A5F" }
+      },
+      r
+    );
+  })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-[#33507A] leading-relaxed mb-4" }, "\u9078\u629E\u4E2D\u306E\u5730\u57DF\u304B\u3089\u5168", poolCount, "\u554F\u3001\u30E9\u30F3\u30C0\u30E0\u3067", Math.min(SESSION_SIZE, poolCount), "\u554F\u51FA\u984C\u3057\u307E\u3059\u3002", /* @__PURE__ */ React.createElement("br", null), "\u5358\u7B54\u30FB2\u3064\u9078\u629E\u30FB\u4E0D\u9069\u5207\u9078\u629E\u30FB\u7D44\u307F\u5408\u308F\u305B\u306E4\u5F62\u5F0F\u304C\u6DF7\u3056\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: onStart,
+      className: "w-full mincho text-lg font-bold py-3 rounded-sm text-white transition active:scale-[0.98]",
+      style: { backgroundColor: "#1F3A5F" }
+    },
+    "\u30B9\u30BF\u30FC\u30C8"
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: onAlbum,
+      className: "w-full mt-2 mincho font-bold py-2.5 rounded-sm border-2 text-sm transition active:scale-[0.98]",
+      style: { borderColor: "#B7410E", color: "#B7410E" }
+    },
+    "\u30A2\u30EB\u30D0\u30E0(",
+    unlockedCardCount,
+    "/",
+    totalCardCount,
+    ")"
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-[#33507A]/70 mt-3 leading-relaxed" }, "10\u554F\u3059\u3079\u3066\u6B63\u89E3\u3059\u308B\u3068\u3001\u51FA\u984C\u3055\u308C\u305F\u5730\u57DF\u306E\u30AB\u30FC\u30C9\u304C1\u679A\u3082\u3089\u3048\u307E\u3059\u3002\u5730\u57DF\u306E\u30AB\u30FC\u30C9\u3092\u3059\u3079\u3066\u96C6\u3081\u308B\u3068\u3001\u7279\u5225\u30AB\u30FC\u30C9\u304C\u89E3\u653E\u3055\u308C\u307E\u3059\u3002")), /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mb-3" }, /* @__PURE__ */ React.createElement(IconTrophy, { size: 16, color: "#B7410E" }), /* @__PURE__ */ React.createElement("h2", { className: "mincho text-sm font-bold text-[#1F3A5F]" }, "\u8A18\u9332(\u6700\u592720\u4EF6)")), !loaded && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A]/60" }, "\u8AAD\u307F\u8FBC\u307F\u4E2D..."), loaded && scoreLog.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A]/60" }, "\u307E\u3060\u8A18\u9332\u304C\u3042\u308A\u307E\u305B\u3093\u3002\u6311\u6226\u3057\u3066\u307F\u307E\u3057\u3087\u3046\u3002"), loaded && scoreLog.length > 0 && /* @__PURE__ */ React.createElement("ul", { className: "space-y-1 max-h-48 overflow-y-auto" }, scoreLog.map((e, i) => /* @__PURE__ */ React.createElement("li", { key: i, className: "flex justify-between text-xs text-[#33507A] border-b border-[#1F3A5F]/10 py-1" }, /* @__PURE__ */ React.createElement("span", null, new Date(e.date).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })), /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, e.score, " / ", e.total))))));
+}
+function QuizScreen({ q, index, total, onAnswer, onNext }) {
+  const [answered, setAnswered] = useState(false);
+  const [ok, setOk] = useState(false);
+  const [selectedSingle, setSelectedSingle] = useState(null);
+  const [selectedMulti, setSelectedMulti] = useState([]);
+  const [selectedExclude, setSelectedExclude] = useState(null);
+  const [pairs, setPairs] = useState({});
+  const [pickedLeft, setPickedLeft] = useState(null);
+  const [rightOrder, setRightOrder] = useState([]);
+  const options = useMemo(() => buildOptions(q), [q]);
+  useEffect(() => {
+    setAnswered(false);
+    setOk(false);
+    setSelectedSingle(null);
+    setSelectedMulti([]);
+    setSelectedExclude(null);
+    setPairs({});
+    setPickedLeft(null);
+    if (q.type === "match") {
+      setRightOrder(shuffle(q.right.map((_, i) => i)));
+    }
+  }, [q]);
+  const submitSingle = (opt) => {
+    if (answered) return;
+    setSelectedSingle(opt);
+    const correct = opt === q.correct;
+    setOk(correct);
+    setAnswered(true);
+    onAnswer(correct);
+  };
+  const toggleMulti = (opt) => {
+    if (answered) return;
+    setSelectedMulti((prev) => {
+      if (prev.includes(opt)) return prev.filter((o) => o !== opt);
+      if (prev.length >= 2) return prev;
+      return [...prev, opt];
+    });
+  };
+  const submitMulti = () => {
+    if (answered || selectedMulti.length !== 2) return;
+    const correct = q.correct.every((c) => selectedMulti.includes(c)) && selectedMulti.every((s) => q.correct.includes(s));
+    setOk(correct);
+    setAnswered(true);
+    onAnswer(correct);
+  };
+  const submitExclude = (i) => {
+    if (answered) return;
+    setSelectedExclude(i);
+    const correct = i === q.oddIndex;
+    setOk(correct);
+    setAnswered(true);
+    onAnswer(correct);
+  };
+  const tapLeft = (li) => {
+    if (answered) return;
+    if (pairs[li] !== void 0) {
+      setPairs((p) => {
+        const np = __spreadValues({}, p);
+        delete np[li];
+        return np;
+      });
+      return;
+    }
+    setPickedLeft(li);
+  };
+  const tapRight = (ri) => {
+    if (answered) return;
+    const alreadyUsed = Object.values(pairs).includes(ri);
+    if (alreadyUsed) return;
+    if (pickedLeft === null) return;
+    setPairs((p) => __spreadProps(__spreadValues({}, p), { [pickedLeft]: ri }));
+    setPickedLeft(null);
+  };
+  const submitMatch = () => {
+    if (answered) return;
+    if (Object.keys(pairs).length !== q.left.length) return;
+    const correct = q.left.every((_, li) => pairs[li] === li);
+    setOk(correct);
+    setAnswered(true);
+    onAnswer(correct);
+  };
+  const typeLabel = { single: "\u56DB\u629E", multi: "2\u3064\u9078\u629E", exclude: "\u4E0D\u9069\u5207\u9078\u629E", match: "\u7D44\u307F\u5408\u308F\u305B" }[q.type];
+  return /* @__PURE__ */ React.createElement("div", { className: "sans" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-[#33507A]" }, "\u7B2C", index + 1, "\u554F / ", total, "\u554F"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-[10px] px-2 py-0.5 rounded-full border border-[#1F3A5F]/40 text-[#1F3A5F]" }, q.region), /* @__PURE__ */ React.createElement("span", { className: "text-[10px] px-2 py-0.5 rounded-full border border-[#1F3A5F]/40 text-[#1F3A5F]" }, typeLabel))), /* @__PURE__ */ React.createElement("div", { className: "bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-4 mb-4" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-base font-bold text-[#1F2937] leading-relaxed" }, q.text)), q.type === "single" && /* @__PURE__ */ React.createElement("div", { className: "space-y-2.5" }, options.map((opt, i) => {
+    const isCorrect = opt === q.correct;
+    const isSel = selectedSingle === opt;
+    let style = "border-[#1F3A5F]/30 bg-white/70 text-[#1F2937]";
+    if (answered && isCorrect) style = "border-[#1F3A5F] bg-[#1F3A5F]/10 text-[#1F3A5F] font-bold";
+    else if (answered && isSel && !isCorrect) style = "border-[#B7410E] bg-[#B7410E]/10 text-[#B7410E]";
+    return /* @__PURE__ */ React.createElement("button", { key: i, disabled: answered, onClick: () => submitSingle(opt), className: `w-full text-left text-sm p-3.5 rounded-sm border transition leading-relaxed flex gap-2 ${style}` }, /* @__PURE__ */ React.createElement("span", { className: "mincho font-bold shrink-0" }, ["\u30A2", "\u30A4", "\u30A6", "\u30A8"][i]), /* @__PURE__ */ React.createElement("span", null, opt));
+  })), q.type === "multi" && /* @__PURE__ */ React.createElement("div", { className: "space-y-2.5" }, options.map((opt, i) => {
+    const isSel = selectedMulti.includes(opt);
+    const isCorrectOpt = q.correct.includes(opt);
+    let style = isSel ? "border-[#1F3A5F] bg-[#1F3A5F]/10" : "border-[#1F3A5F]/30 bg-white/70";
+    if (answered && isCorrectOpt) style = "border-[#1F3A5F] bg-[#1F3A5F]/10 font-bold text-[#1F3A5F]";
+    else if (answered && isSel && !isCorrectOpt) style = "border-[#B7410E] bg-[#B7410E]/10 text-[#B7410E]";
+    return /* @__PURE__ */ React.createElement("button", { key: i, disabled: answered, onClick: () => toggleMulti(opt), className: `w-full text-left text-sm p-3.5 rounded-sm border transition leading-relaxed text-[#1F2937] flex gap-2 ${style}` }, /* @__PURE__ */ React.createElement("span", { className: "mincho font-bold shrink-0" }, ["\u30A2", "\u30A4", "\u30A6", "\u30A8"][i]), /* @__PURE__ */ React.createElement("span", null, opt));
+  }), !answered && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: submitMulti,
+      disabled: selectedMulti.length !== 2,
+      className: "w-full mt-1 mincho font-bold py-2 rounded-sm text-white disabled:opacity-30",
+      style: { backgroundColor: "#1F3A5F" }
+    },
+    "\u6C7A\u5B9A(",
+    selectedMulti.length,
+    "/2)"
+  )), q.type === "exclude" && /* @__PURE__ */ React.createElement("div", { className: "space-y-2.5" }, q.options.map((opt, i) => {
+    let style = "border-[#1F3A5F]/30 bg-white/70 text-[#1F2937]";
+    if (answered && i === q.oddIndex) style = "border-[#B7410E] bg-[#B7410E]/10 text-[#B7410E] font-bold";
+    else if (answered && selectedExclude === i && i !== q.oddIndex) style = "border-[#33507A] bg-[#33507A]/10";
+    return /* @__PURE__ */ React.createElement("button", { key: i, disabled: answered, onClick: () => submitExclude(i), className: `w-full text-left text-sm p-3.5 rounded-sm border transition leading-relaxed flex gap-2 ${style}` }, /* @__PURE__ */ React.createElement("span", { className: "mincho font-bold shrink-0" }, ["\u30A2", "\u30A4", "\u30A6", "\u30A8"][i]), /* @__PURE__ */ React.createElement("span", null, opt));
+  })), q.type === "match" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "flex gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1 space-y-2" }, q.left.map((l, li) => {
+    const paired = pairs[li] !== void 0;
+    const color = paired ? PAIR_COLORS[li % PAIR_COLORS.length] : pickedLeft === li ? "#33507A" : void 0;
+    const showCorrectness = answered;
+    const isRight = showCorrectness && pairs[li] === li;
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: li,
+        disabled: answered,
+        onClick: () => tapLeft(li),
+        className: "w-full text-left text-xs sm:text-sm p-2.5 rounded-sm border transition",
+        style: {
+          borderColor: showCorrectness ? isRight ? "#1F3A5F" : "#B7410E" : color || "rgba(31,58,95,0.3)",
+          backgroundColor: showCorrectness ? isRight ? "rgba(31,58,95,0.08)" : "rgba(183,65,14,0.08)" : color ? `${color}22` : "rgba(255,255,255,0.7)",
+          color: "#1F2937"
+        }
+      },
+      l
+    );
+  })), /* @__PURE__ */ React.createElement("div", { className: "flex-1 space-y-2" }, rightOrder.map((ri) => {
+    const pairedLeft = Object.entries(pairs).find(([, v]) => v === ri);
+    const li = pairedLeft ? Number(pairedLeft[0]) : null;
+    const color = li !== null ? PAIR_COLORS[li % PAIR_COLORS.length] : void 0;
+    const showCorrectness = answered;
+    const isRight = showCorrectness && li !== null && li === ri;
+    return /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: ri,
+        disabled: answered,
+        onClick: () => tapRight(ri),
+        className: "w-full text-left text-xs sm:text-sm p-2.5 rounded-sm border transition",
+        style: {
+          borderColor: showCorrectness ? isRight ? "#1F3A5F" : "#B7410E" : color || "rgba(31,58,95,0.3)",
+          backgroundColor: showCorrectness ? isRight ? "rgba(31,58,95,0.08)" : "rgba(183,65,14,0.08)" : color ? `${color}22` : "rgba(255,255,255,0.7)",
+          color: "#1F2937"
+        }
+      },
+      q.right[ri]
+    );
+  }))), !answered && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: submitMatch,
+      disabled: Object.keys(pairs).length !== q.left.length,
+      className: "w-full mt-3 mincho font-bold py-2 rounded-sm text-white disabled:opacity-30",
+      style: { backgroundColor: "#1F3A5F" }
+    },
+    "\u6C7A\u5B9A(",
+    Object.keys(pairs).length,
+    "/",
+    q.left.length,
+    ")"
+  )), answered && /* @__PURE__ */ React.createElement("div", { className: "mt-4 flex items-center gap-3 bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-3" }, /* @__PURE__ */ React.createElement(Stamp, { ok }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 text-xs text-[#33507A] space-y-1" }, q.type === "single" && !ok && /* @__PURE__ */ React.createElement("p", null, "\u6B63\u89E3: ", /* @__PURE__ */ React.createElement("span", { className: "font-bold text-[#1F3A5F]" }, q.correct)), q.type === "multi" && !ok && /* @__PURE__ */ React.createElement("p", null, "\u6B63\u89E3: ", /* @__PURE__ */ React.createElement("span", { className: "font-bold text-[#1F3A5F]" }, q.correct.join(" / "))), q.type === "exclude" && !ok && /* @__PURE__ */ React.createElement("p", null, "\u6B63\u89E3: ", /* @__PURE__ */ React.createElement("span", { className: "font-bold text-[#1F3A5F]" }, ["\u30A2", "\u30A4", "\u30A6", "\u30A8"][q.oddIndex], ". ", q.options[q.oddIndex])), q.explain && /* @__PURE__ */ React.createElement("p", { className: "leading-relaxed" }, q.explain)), /* @__PURE__ */ React.createElement("button", { onClick: onNext, className: "flex items-center gap-1 text-xs font-bold text-white px-3 py-2 rounded-sm", style: { backgroundColor: "#1F3A5F" } }, "\u6B21\u3078 ", /* @__PURE__ */ React.createElement(IconChevronRight, { size: 14 }))));
+}
+function ResultScreen({ results, total, award, onRetry, onHome }) {
+  const correct = results.filter(Boolean).length;
+  const fullScore = total > 0 && correct === total;
+  return /* @__PURE__ */ React.createElement("div", { className: "sans text-center" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-6 mb-5" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-sm text-[#33507A] mb-2" }, "\u7D50\u679C"), /* @__PURE__ */ React.createElement("p", { className: "mincho text-4xl font-extrabold text-[#1F3A5F] mb-1" }, correct, " ", /* @__PURE__ */ React.createElement("span", { className: "text-lg font-normal text-[#33507A]" }, "/ ", total, "\u554F\u6B63\u89E3")), /* @__PURE__ */ React.createElement("div", { className: "flex justify-center gap-1 mt-3" }, results.map((r, i) => /* @__PURE__ */ React.createElement("span", { key: i, className: "inline-flex items-center justify-center w-6 h-6 rounded-full", style: { backgroundColor: r ? "#1F3A5F" : "#B7410E" } }, r ? /* @__PURE__ */ React.createElement(IconCheck, { size: 14, color: "#fff" }) : /* @__PURE__ */ React.createElement(IconX, { size: 14, color: "#fff" }))))), fullScore && award && /* @__PURE__ */ React.createElement("div", { className: "bg-white border-2 rounded-sm p-5 mb-5", style: { borderColor: "#B7410E" } }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold mb-2", style: { color: "#B7410E" } }, award.alreadyOwned ? `\u6E80\u70B9\u30DC\u30FC\u30CA\u30B9!${award.region.name}\u306F\u96C6\u3081\u7D42\u308F\u3063\u3066\u3044\u307E\u3059(\u30AB\u30FC\u30C9\u518D\u8868\u793A)` : `\u6E80\u70B9\u30DC\u30FC\u30CA\u30B9!${award.region.name}\u306E\u30AB\u30FC\u30C9\u7372\u5F97`), award.card.image ? /* @__PURE__ */ React.createElement("img", { src: award.card.image, alt: award.card.name, className: "w-32 h-32 object-cover rounded-sm mx-auto mb-2 border border-[#1F3A5F]/20" }) : /* @__PURE__ */ React.createElement("div", { className: "text-5xl mb-2" }, award.card.emoji), /* @__PURE__ */ React.createElement("p", { className: "mincho text-base font-bold text-[#1F3A5F] mb-1" }, award.card.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed" }, award.card.desc), award.specialCard && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t", style: { borderColor: "rgba(183,65,14,0.3)" } }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold mb-2", style: { color: "#B7410E" } }, award.region.name, "\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8!\u7279\u5225\u30DC\u30FC\u30CA\u30B9"), award.specialCard.image ? /* @__PURE__ */ React.createElement("img", { src: award.specialCard.image, alt: award.specialCard.name, className: "w-32 h-32 object-cover rounded-sm mx-auto mb-2 border border-[#1F3A5F]/20" }) : /* @__PURE__ */ React.createElement("div", { className: "text-5xl mb-2" }, award.specialCard.emoji), /* @__PURE__ */ React.createElement("p", { className: "mincho text-base font-bold text-[#1F3A5F] mb-1" }, award.specialCard.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed" }, award.specialCard.desc))), !fullScore && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-[#33507A]/70 mb-5" }, "10\u554F\u5168\u554F\u6B63\u89E3\u3067\u3001\u51FA\u984C\u3055\u308C\u305F\u5730\u57DF\u306E\u30AB\u30FC\u30C9\u304C\u3082\u3089\u3048\u307E\u3059\u3002\u6B21\u306F\u6E80\u70B9\u3092\u72D9\u3063\u3066\u307F\u307E\u3057\u3087\u3046\u3002"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: onHome, className: "flex-1 mincho font-bold py-3 rounded-sm border-2 border-[#1F3A5F] text-[#1F3A5F]" }, "\u30DB\u30FC\u30E0\u3078"), /* @__PURE__ */ React.createElement("button", { onClick: onRetry, className: "flex-1 flex items-center justify-center gap-1 mincho font-bold py-3 rounded-sm text-white", style: { backgroundColor: "#1F3A5F" } }, /* @__PURE__ */ React.createElement(IconRotateCcw, { size: 16 }), " \u3082\u3046\u4E00\u5EA6")));
+}
+function AlbumScreen({ albumProgress, loaded }) {
+  if (!loaded) {
+    return /* @__PURE__ */ React.createElement("div", { className: "sans text-center text-sm text-[#33507A] bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-6" }, "\u8AAD\u307F\u8FBC\u307F\u4E2D...");
+  }
+  return /* @__PURE__ */ React.createElement("div", { className: "sans space-y-5" }, ALBUM_REGIONS.map((region) => {
+    const state = albumProgress[region.id] || { unlockedCardIds: [], specialUnlocked: false };
+    return /* @__PURE__ */ React.createElement("div", { key: region.id, className: "bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-sm font-bold text-[#1F3A5F]" }, region.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-[#33507A]" }, state.unlockedCardIds.length, "/", region.cards.length)), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-2" }, region.cards.map((card) => {
+      const got = state.unlockedCardIds.includes(card.id);
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          key: card.id,
+          className: "border rounded-sm p-2 text-center",
+          style: { borderColor: "#1F3A5F", opacity: got ? 1 : 0.55, backgroundColor: "#FBF9F3" }
+        },
+        got && card.image ? /* @__PURE__ */ React.createElement("img", { src: card.image, alt: card.name, className: "w-full aspect-square object-cover rounded-sm mb-1" }) : /* @__PURE__ */ React.createElement("div", { className: "text-3xl mb-1", style: { filter: got ? "none" : "grayscale(100%)" } }, got ? card.emoji : "\u2754"),
+        /* @__PURE__ */ React.createElement("div", { className: "text-[10px] leading-tight text-[#1F3A5F]" }, got ? card.name : "\u672A\u7372\u5F97")
+      );
+    }), /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "border-2 rounded-sm p-2 text-center",
+        style: { borderColor: "#B7410E", opacity: state.specialUnlocked ? 1 : 0.55, backgroundColor: "#FBF9F3" }
+      },
+      state.specialUnlocked && region.specialCard.image ? /* @__PURE__ */ React.createElement("img", { src: region.specialCard.image, alt: region.specialCard.name, className: "w-full aspect-square object-cover rounded-sm mb-1" }) : /* @__PURE__ */ React.createElement("div", { className: "text-3xl mb-1", style: { filter: state.specialUnlocked ? "none" : "grayscale(100%)" } }, state.specialUnlocked ? region.specialCard.emoji : "\u{1F381}"),
+      /* @__PURE__ */ React.createElement("div", { className: "text-[10px] leading-tight text-[#1F3A5F]" }, state.specialUnlocked ? region.specialCard.name : "\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u7279\u5178")
+    )));
+  }));
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
