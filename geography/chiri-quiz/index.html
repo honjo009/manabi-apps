@@ -67,6 +67,21 @@ function IconTrophy(props) {
 function IconChevronRight(props) {
   return /* @__PURE__ */ React.createElement(IconBase, __spreadValues({}, props), /* @__PURE__ */ React.createElement("polyline", { points: "9 18 15 12 9 6" }));
 }
+function CardImage({ src, alt, emoji, className }) {
+  const [broken, setBroken] = useState(!src);
+  if (!src || broken) {
+    return /* @__PURE__ */ React.createElement("div", { className: className + " flex items-center justify-center bg-[#FBF9F3]" }, emoji);
+  }
+  return /* @__PURE__ */ React.createElement(
+    "img",
+    {
+      src,
+      alt,
+      className: className + " object-cover",
+      onError: () => setBroken(true)
+    }
+  );
+}
 function buildOptions(q) {
   if (q.type === "single") return shuffle([q.correct, ...q.wrong]);
   if (q.type === "multi") return shuffle([...q.correct, ...q.wrong]);
@@ -82,7 +97,9 @@ function shuffle(arr) {
   return a;
 }
 const REGION_DEFS = [
+  { id: "hokkaido_tohoku", name: "\u5317\u6D77\u9053\u30FB\u6771\u5317" },
   { id: "kanto", name: "\u95A2\u6771" },
+  { id: "chubu", name: "\u4E2D\u90E8" },
   { id: "kinki", name: "\u8FD1\u757F" },
   { id: "kyushu", name: "\u4E5D\u5DDE" },
   { id: "chugoku_shikoku", name: "\u4E2D\u56FD\u30FB\u56DB\u56FD" }
@@ -90,44 +107,64 @@ const REGION_DEFS = [
 const REGION_NAME_TO_ID = Object.fromEntries(REGION_DEFS.map((r) => [r.name, r.id]));
 const ALBUM_REGIONS = [
   {
+    id: "hokkaido_tohoku",
+    name: "\u5317\u6D77\u9053\u30FB\u6771\u5317",
+    cards: [
+      { id: "ht_ishikari", name: "\u77F3\u72E9\u5E73\u91CE\u306E\u7A32\u4F5C", image: "prizes/hokkaido_tohoku/ht_ishikari.png", emoji: "\u{1F33E}", desc: "\u5BA2\u571F\u3084\u54C1\u7A2E\u6539\u826F\u306B\u3088\u3063\u3066\u3001\u5BD2\u51B7\u5730\u3067\u3082\u7A32\u4F5C\u304C\u76DB\u3093\u306B\u306A\u3063\u305F\u5E73\u91CE\u3002" },
+      { id: "ht_tokachi", name: "\u5341\u52DD\u5E73\u91CE\u306E\u7551\u4F5C", image: "prizes/hokkaido_tohoku/ht_tokachi.png", emoji: "\u{1F954}", desc: "\u5927\u898F\u6A21\u306A\u7551\u4F5C\u304C\u5E83\u304C\u308B\u3001\u3058\u3083\u304C\u3044\u3082\u3084\u5C0F\u9EA6\u306E\u4E00\u5927\u7523\u5730\u3002" },
+      { id: "ht_sanriku", name: "\u4E09\u9678\u6D77\u5CB8\u3068\u30EA\u30A2\u30B9\u5F0F\u6F01\u696D", image: "prizes/hokkaido_tohoku/ht_sanriku.png", emoji: "\u{1F41F}", desc: "\u5165\u308A\u7D44\u3093\u3060\u30EA\u30A2\u30B9\u6D77\u5CB8\u3092\u751F\u304B\u3057\u305F\u3001\u990A\u6B96\u696D\u304C\u76DB\u3093\u306A\u6D77\u5CB8\u3002" }
+    ],
+    specialCard: { id: "ht_special", name: "\u5317\u6D77\u9053\u30FB\u6771\u5317\u7279\u5225\u30AB\u30FC\u30C9:\u77E5\u5E8A", image: "prizes/hokkaido_tohoku/ht_special.png", emoji: "\u{1F43B}", desc: "\u624B\u3064\u304B\u305A\u306E\u81EA\u7136\u304C\u6B8B\u308B\u3001\u4E16\u754C\u81EA\u7136\u907A\u7523\u306E\u534A\u5CF6\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+  },
+  {
     id: "kanto",
     name: "\u95A2\u6771",
     cards: [
-      { id: "kanto_keihin", name: "\u4EAC\u6D5C\u5DE5\u696D\u5730\u5E2F", image: null, emoji: "\u{1F3ED}", desc: "\u6771\u4EAC\u6E7E\u5CB8\u306B\u5E83\u304C\u308B\u3001\u65E5\u672C\u6700\u5927\u7D1A\u306E\u5DE5\u696D\u5730\u5E2F\u3002" },
-      { id: "kanto_tonegawa", name: "\u5229\u6839\u5DDD\u3068\u6C34\u90F7", image: null, emoji: "\u{1F6A4}", desc: "\u95A2\u6771\u5E73\u91CE\u3092\u6D41\u308C\u308B\u5927\u6CB3\u5DDD\u3068\u3001\u6C34\u8DEF\u304C\u767A\u9054\u3057\u305F\u6C34\u90F7\u5730\u5E2F\u3002" },
-      { id: "kanto_tsumagoi", name: "\u5B2C\u604B\u9AD8\u539F\u30AD\u30E3\u30D9\u30C4", image: null, emoji: "\u{1F96C}", desc: "\u590F\u3067\u3082\u6DBC\u3057\u3044\u9AD8\u539F\u3067\u683D\u57F9\u3055\u308C\u308B\u3001\u6291\u5236\u683D\u57F9\u306E\u30AD\u30E3\u30D9\u30C4\u3002" }
+      { id: "kanto_keihin", name: "\u4EAC\u6D5C\u5DE5\u696D\u5730\u5E2F", image: "prizes/kanto/kanto_keihin.png", emoji: "\u{1F3ED}", desc: "\u6771\u4EAC\u6E7E\u5CB8\u306B\u5E83\u304C\u308B\u3001\u65E5\u672C\u6700\u5927\u7D1A\u306E\u5DE5\u696D\u5730\u5E2F\u3002" },
+      { id: "kanto_tonegawa", name: "\u5229\u6839\u5DDD\u3068\u6C34\u90F7", image: "prizes/kanto/kanto_tonegawa.png", emoji: "\u{1F6A4}", desc: "\u95A2\u6771\u5E73\u91CE\u3092\u6D41\u308C\u308B\u5927\u6CB3\u5DDD\u3068\u3001\u6C34\u8DEF\u304C\u767A\u9054\u3057\u305F\u6C34\u90F7\u5730\u5E2F\u3002" },
+      { id: "kanto_tsumagoi", name: "\u5B2C\u604B\u9AD8\u539F\u30AD\u30E3\u30D9\u30C4", image: "prizes/kanto/kanto_tsumagoi.png", emoji: "\u{1F96C}", desc: "\u590F\u3067\u3082\u6DBC\u3057\u3044\u9AD8\u539F\u3067\u683D\u57F9\u3055\u308C\u308B\u3001\u6291\u5236\u683D\u57F9\u306E\u30AD\u30E3\u30D9\u30C4\u3002" }
     ],
-    specialCard: { id: "kanto_special", name: "\u95A2\u6771\u7279\u5225\u30AB\u30FC\u30C9:\u6771\u4EAC\u6E7E\u30A2\u30AF\u30A2\u30E9\u30A4\u30F3", image: null, emoji: "\u{1F309}", desc: "\u5343\u8449\u3068\u795E\u5948\u5DDD\u3092\u7D50\u3076\u3001\u6D77\u5E95\u30C8\u30F3\u30CD\u30EB\u3068\u6A4B\u304B\u3089\u306A\u308B\u9053\u8DEF\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+    specialCard: { id: "kanto_special", name: "\u95A2\u6771\u7279\u5225\u30AB\u30FC\u30C9:\u6771\u4EAC\u6E7E\u30A2\u30AF\u30A2\u30E9\u30A4\u30F3", image: "prizes/kanto/kanto_special.png", emoji: "\u{1F309}", desc: "\u5343\u8449\u3068\u795E\u5948\u5DDD\u3092\u7D50\u3076\u3001\u6D77\u5E95\u30C8\u30F3\u30CD\u30EB\u3068\u6A4B\u304B\u3089\u306A\u308B\u9053\u8DEF\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+  },
+  {
+    id: "chubu",
+    name: "\u4E2D\u90E8",
+    cards: [
+      { id: "chubu_kouchi", name: "\u4E2D\u592E\u9AD8\u5730\u306E\u9AD8\u539F\u91CE\u83DC", image: "prizes/chubu/chubu_kouchi.png", emoji: "\u{1F957}", desc: "\u590F\u3067\u3082\u6DBC\u3057\u3044\u6C17\u5019\u3092\u751F\u304B\u3057\u305F\u3001\u30EC\u30BF\u30B9\u306A\u3069\u306E\u6291\u5236\u683D\u57F9\u3002" },
+      { id: "chubu_tokai", name: "\u6771\u6D77\u5DE5\u696D\u5730\u57DF", image: "prizes/chubu/chubu_tokai.png", emoji: "\u{1F697}", desc: "\u81EA\u52D5\u8ECA\u5DE5\u696D\u3092\u4E2D\u5FC3\u306B\u767A\u9054\u3057\u305F\u3001\u592A\u5E73\u6D0B\u5CB8\u306E\u5DE5\u696D\u5730\u57DF\u3002" },
+      { id: "chubu_hokuriku", name: "\u5317\u9678\u306E\u7A32\u4F5C", image: "prizes/chubu/chubu_hokuriku.png", emoji: "\u{1F35A}", desc: "\u8C4A\u5BCC\u306A\u96EA\u89E3\u3051\u6C34\u3092\u751F\u304B\u3057\u305F\u3001\u5168\u56FD\u6709\u6570\u306E\u7C73\u3069\u3053\u308D\u3002" }
+    ],
+    specialCard: { id: "chubu_special", name: "\u4E2D\u90E8\u7279\u5225\u30AB\u30FC\u30C9:\u5BCC\u58EB\u5C71", image: "prizes/chubu/chubu_special.png", emoji: "\u{1F5FB}", desc: "\u65E5\u672C\u4E00\u306E\u6A19\u9AD8\u3092\u8A87\u308A\u3001\u4E16\u754C\u6587\u5316\u907A\u7523\u306B\u3082\u767B\u9332\u3055\u308C\u305F\u5C71\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
   },
   {
     id: "kinki",
     name: "\u8FD1\u757F",
     cards: [
-      { id: "kinki_shigaraki", name: "\u4FE1\u697D\u713C", image: null, emoji: "\u{1F99D}", desc: "\u305F\u306C\u304D\u306E\u7F6E\u7269\u3067\u77E5\u3089\u308C\u308B\u3001\u6ECB\u8CC0\u770C\u306E\u4F1D\u7D71\u7684\u306A\u713C\u304D\u7269\u3002" },
-      { id: "kinki_oumi", name: "\u8FD1\u6C5F\u5546\u4EBA", image: null, emoji: "\u{1F9E7}", desc: "\u4EA4\u901A\u306E\u8981\u5730\u3092\u751F\u304B\u3057\u3001\u5168\u56FD\u3067\u6D3B\u8E8D\u3057\u305F\u5546\u4EBA\u305F\u3061\u3002" },
-      { id: "kinki_kumano", name: "\u7D00\u4F0A\u5C71\u5730\u306E\u970A\u5834", image: null, emoji: "\u26E9\uFE0F", desc: "\u90A3\u667A\u306E\u6EDD\u3084\u9AD8\u91CE\u5C71\u3092\u542B\u3080\u3001\u4E16\u754C\u907A\u7523\u306E\u8056\u5730\u3068\u53C2\u8A63\u9053\u3002" }
+      { id: "kinki_shigaraki", name: "\u4FE1\u697D\u713C", image: "prizes/kinki/kinki_shigaraki.png", emoji: "\u{1F99D}", desc: "\u305F\u306C\u304D\u306E\u7F6E\u7269\u3067\u77E5\u3089\u308C\u308B\u3001\u6ECB\u8CC0\u770C\u306E\u4F1D\u7D71\u7684\u306A\u713C\u304D\u7269\u3002" },
+      { id: "kinki_oumi", name: "\u8FD1\u6C5F\u5546\u4EBA", image: "prizes/kinki/kinki_oumi.png", emoji: "\u{1F9E7}", desc: "\u4EA4\u901A\u306E\u8981\u5730\u3092\u751F\u304B\u3057\u3001\u5168\u56FD\u3067\u6D3B\u8E8D\u3057\u305F\u5546\u4EBA\u305F\u3061\u3002" },
+      { id: "kinki_kumano", name: "\u7D00\u4F0A\u5C71\u5730\u306E\u970A\u5834", image: "prizes/kinki/kinki_kumano.png", emoji: "\u26E9\uFE0F", desc: "\u90A3\u667A\u306E\u6EDD\u3084\u9AD8\u91CE\u5C71\u3092\u542B\u3080\u3001\u4E16\u754C\u907A\u7523\u306E\u8056\u5730\u3068\u53C2\u8A63\u9053\u3002" }
     ],
-    specialCard: { id: "kinki_special", name: "\u8FD1\u757F\u7279\u5225\u30AB\u30FC\u30C9:\u7435\u7436\u6E56", image: null, emoji: "\u{1F30A}", desc: "\u65E5\u672C\u6700\u5927\u306E\u6E56\u3067\u3042\u308A\u3001\u8FD1\u757F\u5730\u65B9\u306E\u6C34\u304C\u3081\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+    specialCard: { id: "kinki_special", name: "\u8FD1\u757F\u7279\u5225\u30AB\u30FC\u30C9:\u7435\u7436\u6E56", image: "prizes/kinki/kinki_special.png", emoji: "\u{1F30A}", desc: "\u65E5\u672C\u6700\u5927\u306E\u6E56\u3067\u3042\u308A\u3001\u8FD1\u757F\u5730\u65B9\u306E\u6C34\u304C\u3081\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
   },
   {
     id: "kyushu",
     name: "\u4E5D\u5DDE",
     cards: [
-      { id: "kyushu_aso", name: "\u963F\u8607\u306E\u30AB\u30EB\u30C7\u30E9", image: null, emoji: "\u{1F30B}", desc: "\u5DE8\u5927\u306A\u5674\u706B\u306B\u3088\u3063\u3066\u3067\u304D\u305F\u3001\u4E16\u754C\u6700\u5927\u7D1A\u306E\u30AB\u30EB\u30C7\u30E9\u5730\u5F62\u3002" },
-      { id: "kyushu_ariake", name: "\u6709\u660E\u6D77\u306E\u5E72\u62D3", image: null, emoji: "\u{1F980}", desc: "\u9060\u6D45\u306E\u6D77\u3092\u5824\u9632\u3067\u533A\u5207\u3063\u3066\u4F5C\u3089\u308C\u305F\u3001\u5E83\u5927\u306A\u5E72\u62D3\u5730\u3002" },
-      { id: "kyushu_shirasu", name: "\u30B7\u30E9\u30B9\u53F0\u5730\u3068\u3055\u3064\u307E\u3044\u3082", image: null, emoji: "\u{1F360}", desc: "\u6C34\u306F\u3051\u306E\u826F\u3044\u706B\u5C71\u7070\u571F\u58CC\u3092\u751F\u304B\u3057\u305F\u3001\u9E7F\u5150\u5CF6\u306E\u7551\u4F5C\u3002" }
+      { id: "kyushu_aso", name: "\u963F\u8607\u306E\u30AB\u30EB\u30C7\u30E9", image: "prizes/kyushu/kyushu_aso.png", emoji: "\u{1F30B}", desc: "\u5DE8\u5927\u306A\u5674\u706B\u306B\u3088\u3063\u3066\u3067\u304D\u305F\u3001\u4E16\u754C\u6700\u5927\u7D1A\u306E\u30AB\u30EB\u30C7\u30E9\u5730\u5F62\u3002" },
+      { id: "kyushu_ariake", name: "\u6709\u660E\u6D77\u306E\u5E72\u62D3", image: "prizes/kyushu/kyushu_ariake.png", emoji: "\u{1F980}", desc: "\u9060\u6D45\u306E\u6D77\u3092\u5824\u9632\u3067\u533A\u5207\u3063\u3066\u4F5C\u3089\u308C\u305F\u3001\u5E83\u5927\u306A\u5E72\u62D3\u5730\u3002" },
+      { id: "kyushu_shirasu", name: "\u30B7\u30E9\u30B9\u53F0\u5730\u3068\u3055\u3064\u307E\u3044\u3082", image: "prizes/kyushu/kyushu_shirasu.png", emoji: "\u{1F360}", desc: "\u6C34\u306F\u3051\u306E\u826F\u3044\u706B\u5C71\u7070\u571F\u58CC\u3092\u751F\u304B\u3057\u305F\u3001\u9E7F\u5150\u5CF6\u306E\u7551\u4F5C\u3002" }
     ],
-    specialCard: { id: "kyushu_special", name: "\u4E5D\u5DDE\u7279\u5225\u30AB\u30FC\u30C9:\u685C\u5CF6", image: null, emoji: "\u{1F5FB}", desc: "\u9E7F\u5150\u5CF6\u306E\u30B7\u30F3\u30DC\u30EB\u3068\u3057\u3066\u3001\u4ECA\u3082\u5674\u7159\u3092\u4E0A\u3052\u7D9A\u3051\u308B\u6D3B\u706B\u5C71\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+    specialCard: { id: "kyushu_special", name: "\u4E5D\u5DDE\u7279\u5225\u30AB\u30FC\u30C9:\u685C\u5CF6", image: "prizes/kyushu/kyushu_special.png", emoji: "\u{1F5FB}", desc: "\u9E7F\u5150\u5CF6\u306E\u30B7\u30F3\u30DC\u30EB\u3068\u3057\u3066\u3001\u4ECA\u3082\u5674\u7159\u3092\u4E0A\u3052\u7D9A\u3051\u308B\u6D3B\u706B\u5C71\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
   },
   {
     id: "chugoku_shikoku",
     name: "\u4E2D\u56FD\u30FB\u56DB\u56FD",
     cards: [
-      { id: "cs_setouchi", name: "\u702C\u6238\u5185\u5DE5\u696D\u5730\u57DF", image: null, emoji: "\u2693", desc: "\u6CE2\u306E\u7A4F\u3084\u304B\u306A\u702C\u6238\u5185\u6D77\u6CBF\u5CB8\u306B\u767A\u9054\u3057\u305F\u5DE5\u696D\u5730\u57DF\u3002" },
-      { id: "cs_shimanami", name: "\u3057\u307E\u306A\u307F\u6D77\u9053", image: null, emoji: "\u{1F6B4}", desc: "\u702C\u6238\u5185\u6D77\u306E\u5CF6\u3005\u3092\u7D50\u3076\u3001\u30B5\u30A4\u30AF\u30EA\u30F3\u30B0\u3067\u3082\u4EBA\u6C17\u306E\u9023\u7D61\u6A4B\u3002" },
-      { id: "cs_izumo", name: "\u51FA\u96F2\u5927\u793E", image: null, emoji: "\u{1F38E}", desc: "\u65E7\u66A610\u6708\u306B\u5168\u56FD\u306E\u795E\u3005\u304C\u96C6\u307E\u308B\u3068\u3055\u308C\u308B\u3001\u5CF6\u6839\u770C\u306E\u795E\u793E\u3002" }
+      { id: "cs_setouchi", name: "\u702C\u6238\u5185\u5DE5\u696D\u5730\u57DF", image: "prizes/chugoku_shikoku/cs_setouchi.png", emoji: "\u2693", desc: "\u6CE2\u306E\u7A4F\u3084\u304B\u306A\u702C\u6238\u5185\u6D77\u6CBF\u5CB8\u306B\u767A\u9054\u3057\u305F\u5DE5\u696D\u5730\u57DF\u3002" },
+      { id: "cs_shimanami", name: "\u3057\u307E\u306A\u307F\u6D77\u9053", image: "prizes/chugoku_shikoku/cs_shimanami.png", emoji: "\u{1F6B4}", desc: "\u702C\u6238\u5185\u6D77\u306E\u5CF6\u3005\u3092\u7D50\u3076\u3001\u30B5\u30A4\u30AF\u30EA\u30F3\u30B0\u3067\u3082\u4EBA\u6C17\u306E\u9023\u7D61\u6A4B\u3002" },
+      { id: "cs_izumo", name: "\u51FA\u96F2\u5927\u793E", image: "prizes/chugoku_shikoku/cs_izumo.png", emoji: "\u{1F38E}", desc: "\u65E7\u66A610\u6708\u306B\u5168\u56FD\u306E\u795E\u3005\u304C\u96C6\u307E\u308B\u3068\u3055\u308C\u308B\u3001\u5CF6\u6839\u770C\u306E\u795E\u793E\u3002" }
     ],
-    specialCard: { id: "cs_special", name: "\u4E2D\u56FD\u30FB\u56DB\u56FD\u7279\u5225\u30AB\u30FC\u30C9:\u8B83\u5C90\u306E\u6E9C\u6C60", image: null, emoji: "\u{1F4A7}", desc: "\u96E8\u306E\u5C11\u306A\u3044\u8B83\u5C90\u5E73\u91CE\u3067\u8FB2\u696D\u7528\u6C34\u3092\u78BA\u4FDD\u3059\u308B\u305F\u3081\u306E\u3001\u6570\u591A\u304F\u306E\u6E9C\u6C60\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
+    specialCard: { id: "cs_special", name: "\u4E2D\u56FD\u30FB\u56DB\u56FD\u7279\u5225\u30AB\u30FC\u30C9:\u8B83\u5C90\u306E\u6E9C\u6C60", image: "prizes/chugoku_shikoku/cs_special.png", emoji: "\u{1F4A7}", desc: "\u96E8\u306E\u5C11\u306A\u3044\u8B83\u5C90\u5E73\u91CE\u3067\u8FB2\u696D\u7528\u6C34\u3092\u78BA\u4FDD\u3059\u308B\u305F\u3081\u306E\u3001\u6570\u591A\u304F\u306E\u6E9C\u6C60\u3002\u5168\u30AB\u30FC\u30C9\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u306E\u30DC\u30FC\u30CA\u30B9\u3002" }
   }
 ];
 function getRegionLockedCards(albumProgress, region) {
@@ -216,6 +253,13 @@ function App() {
     () => allQuestions.filter((q) => selectedRegions.includes(q.region)).length,
     [allQuestions, selectedRegions]
   );
+  const regionQuestionCounts = useMemo(() => {
+    const map = {};
+    REGION_DEFS.forEach((r) => {
+      map[r.name] = (questionsByRegion[r.id] || []).length;
+    });
+    return map;
+  }, [questionsByRegion]);
   const saveAlbumProgress = useCallback((next) => {
     try {
       window.localStorage.setItem(ALBUM_STORAGE_KEY, JSON.stringify(next));
@@ -320,6 +364,7 @@ function App() {
       loaded: logLoaded,
       poolCount,
       regions: ALL_REGION_NAMES,
+      regionQuestionCounts,
       selectedRegions,
       onToggleRegion: toggleRegion,
       unlockedCardCount,
@@ -345,9 +390,10 @@ function App() {
     }
   ), screen === "album" && /* @__PURE__ */ React.createElement(AlbumScreen, { albumProgress, loaded: albumLoaded }))));
 }
-function HomeScreen({ onStart, onAlbum, scoreLog, loaded, poolCount, regions, selectedRegions, onToggleRegion, unlockedCardCount, totalCardCount }) {
+function HomeScreen({ onStart, onAlbum, scoreLog, loaded, poolCount, regions, regionQuestionCounts, selectedRegions, onToggleRegion, unlockedCardCount, totalCardCount }) {
   return /* @__PURE__ */ React.createElement("div", { className: "sans" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-5 mb-5" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold text-[#1F3A5F] mb-2" }, "\u51FA\u984C\u3059\u308B\u5730\u57DF"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mb-4" }, regions.map((r) => {
     const on = selectedRegions.includes(r);
+    const hasQuestions = (regionQuestionCounts[r] || 0) > 0;
     return /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -356,17 +402,19 @@ function HomeScreen({ onStart, onAlbum, scoreLog, loaded, poolCount, regions, se
         className: "text-xs font-bold px-3 py-1.5 rounded-full border transition",
         style: on ? { backgroundColor: "#1F3A5F", borderColor: "#1F3A5F", color: "#fff" } : { backgroundColor: "transparent", borderColor: "rgba(31,58,95,0.4)", color: "#1F3A5F" }
       },
-      r
+      r,
+      !hasQuestions && /* @__PURE__ */ React.createElement("span", { className: "ml-1 opacity-60" }, "(\u6E96\u5099\u4E2D)")
     );
   })), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-[#33507A] leading-relaxed mb-4" }, "\u9078\u629E\u4E2D\u306E\u5730\u57DF\u304B\u3089\u5168", poolCount, "\u554F\u3001\u30E9\u30F3\u30C0\u30E0\u3067", Math.min(SESSION_SIZE, poolCount), "\u554F\u51FA\u984C\u3057\u307E\u3059\u3002", /* @__PURE__ */ React.createElement("br", null), "\u5358\u7B54\u30FB2\u3064\u9078\u629E\u30FB\u4E0D\u9069\u5207\u9078\u629E\u30FB\u7D44\u307F\u5408\u308F\u305B\u306E4\u5F62\u5F0F\u304C\u6DF7\u3056\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: onStart,
-      className: "w-full mincho text-lg font-bold py-3 rounded-sm text-white transition active:scale-[0.98]",
+      disabled: poolCount === 0,
+      className: "w-full mincho text-lg font-bold py-3 rounded-sm text-white transition active:scale-[0.98] disabled:opacity-40",
       style: { backgroundColor: "#1F3A5F" }
     },
     "\u30B9\u30BF\u30FC\u30C8"
-  ), /* @__PURE__ */ React.createElement(
+  ), poolCount === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs mt-2", style: { color: "#B7410E" } }, "\u9078\u629E\u4E2D\u306E\u5730\u57DF\u306B\u554F\u984C\u304C\u3042\u308A\u307E\u305B\u3093\u3002\u5730\u57DF\u3092\u9078\u3073\u76F4\u3057\u3066\u304F\u3060\u3055\u3044\u3002"), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: onAlbum,
@@ -551,7 +599,7 @@ function QuizScreen({ q, index, total, onAnswer, onNext }) {
 function ResultScreen({ results, total, award, onRetry, onHome }) {
   const correct = results.filter(Boolean).length;
   const fullScore = total > 0 && correct === total;
-  return /* @__PURE__ */ React.createElement("div", { className: "sans text-center" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-6 mb-5" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-sm text-[#33507A] mb-2" }, "\u7D50\u679C"), /* @__PURE__ */ React.createElement("p", { className: "mincho text-4xl font-extrabold text-[#1F3A5F] mb-1" }, correct, " ", /* @__PURE__ */ React.createElement("span", { className: "text-lg font-normal text-[#33507A]" }, "/ ", total, "\u554F\u6B63\u89E3")), /* @__PURE__ */ React.createElement("div", { className: "flex justify-center gap-1 mt-3" }, results.map((r, i) => /* @__PURE__ */ React.createElement("span", { key: i, className: "inline-flex items-center justify-center w-6 h-6 rounded-full", style: { backgroundColor: r ? "#1F3A5F" : "#B7410E" } }, r ? /* @__PURE__ */ React.createElement(IconCheck, { size: 14, color: "#fff" }) : /* @__PURE__ */ React.createElement(IconX, { size: 14, color: "#fff" }))))), fullScore && award && /* @__PURE__ */ React.createElement("div", { className: "bg-white border-2 rounded-sm p-5 mb-5", style: { borderColor: "#B7410E" } }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold mb-2", style: { color: "#B7410E" } }, award.alreadyOwned ? `\u6E80\u70B9\u30DC\u30FC\u30CA\u30B9!${award.region.name}\u306F\u96C6\u3081\u7D42\u308F\u3063\u3066\u3044\u307E\u3059(\u30AB\u30FC\u30C9\u518D\u8868\u793A)` : `\u6E80\u70B9\u30DC\u30FC\u30CA\u30B9!${award.region.name}\u306E\u30AB\u30FC\u30C9\u7372\u5F97`), award.card.image ? /* @__PURE__ */ React.createElement("img", { src: award.card.image, alt: award.card.name, className: "w-32 h-32 object-cover rounded-sm mx-auto mb-2 border border-[#1F3A5F]/20" }) : /* @__PURE__ */ React.createElement("div", { className: "text-5xl mb-2" }, award.card.emoji), /* @__PURE__ */ React.createElement("p", { className: "mincho text-base font-bold text-[#1F3A5F] mb-1" }, award.card.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed" }, award.card.desc), award.specialCard && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t", style: { borderColor: "rgba(183,65,14,0.3)" } }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold mb-2", style: { color: "#B7410E" } }, award.region.name, "\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8!\u7279\u5225\u30DC\u30FC\u30CA\u30B9"), award.specialCard.image ? /* @__PURE__ */ React.createElement("img", { src: award.specialCard.image, alt: award.specialCard.name, className: "w-32 h-32 object-cover rounded-sm mx-auto mb-2 border border-[#1F3A5F]/20" }) : /* @__PURE__ */ React.createElement("div", { className: "text-5xl mb-2" }, award.specialCard.emoji), /* @__PURE__ */ React.createElement("p", { className: "mincho text-base font-bold text-[#1F3A5F] mb-1" }, award.specialCard.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed" }, award.specialCard.desc))), !fullScore && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-[#33507A]/70 mb-5" }, "10\u554F\u5168\u554F\u6B63\u89E3\u3067\u3001\u51FA\u984C\u3055\u308C\u305F\u5730\u57DF\u306E\u30AB\u30FC\u30C9\u304C\u3082\u3089\u3048\u307E\u3059\u3002\u6B21\u306F\u6E80\u70B9\u3092\u72D9\u3063\u3066\u307F\u307E\u3057\u3087\u3046\u3002"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: onHome, className: "flex-1 mincho font-bold py-3 rounded-sm border-2 border-[#1F3A5F] text-[#1F3A5F]" }, "\u30DB\u30FC\u30E0\u3078"), /* @__PURE__ */ React.createElement("button", { onClick: onRetry, className: "flex-1 flex items-center justify-center gap-1 mincho font-bold py-3 rounded-sm text-white", style: { backgroundColor: "#1F3A5F" } }, /* @__PURE__ */ React.createElement(IconRotateCcw, { size: 16 }), " \u3082\u3046\u4E00\u5EA6")));
+  return /* @__PURE__ */ React.createElement("div", { className: "sans text-center" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-6 mb-5" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-sm text-[#33507A] mb-2" }, "\u7D50\u679C"), /* @__PURE__ */ React.createElement("p", { className: "mincho text-4xl font-extrabold text-[#1F3A5F] mb-1" }, correct, " ", /* @__PURE__ */ React.createElement("span", { className: "text-lg font-normal text-[#33507A]" }, "/ ", total, "\u554F\u6B63\u89E3")), /* @__PURE__ */ React.createElement("div", { className: "flex justify-center gap-1 mt-3" }, results.map((r, i) => /* @__PURE__ */ React.createElement("span", { key: i, className: "inline-flex items-center justify-center w-6 h-6 rounded-full", style: { backgroundColor: r ? "#1F3A5F" : "#B7410E" } }, r ? /* @__PURE__ */ React.createElement(IconCheck, { size: 14, color: "#fff" }) : /* @__PURE__ */ React.createElement(IconX, { size: 14, color: "#fff" }))))), fullScore && award && /* @__PURE__ */ React.createElement("div", { className: "bg-white border-2 rounded-sm p-5 mb-5", style: { borderColor: "#B7410E" } }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold mb-2", style: { color: "#B7410E" } }, award.alreadyOwned ? `\u6E80\u70B9\u30DC\u30FC\u30CA\u30B9!${award.region.name}\u306F\u96C6\u3081\u7D42\u308F\u3063\u3066\u3044\u307E\u3059(\u30AB\u30FC\u30C9\u518D\u8868\u793A)` : `\u6E80\u70B9\u30DC\u30FC\u30CA\u30B9!${award.region.name}\u306E\u30AB\u30FC\u30C9\u7372\u5F97`), /* @__PURE__ */ React.createElement(CardImage, { src: award.card.image, alt: award.card.name, emoji: award.card.emoji, className: "w-32 h-32 rounded-sm mx-auto mb-2 border border-[#1F3A5F]/20 text-5xl" }), /* @__PURE__ */ React.createElement("p", { className: "mincho text-base font-bold text-[#1F3A5F] mb-1" }, award.card.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed" }, award.card.desc), award.specialCard && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t", style: { borderColor: "rgba(183,65,14,0.3)" } }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold mb-2", style: { color: "#B7410E" } }, award.region.name, "\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8!\u7279\u5225\u30DC\u30FC\u30CA\u30B9"), /* @__PURE__ */ React.createElement(CardImage, { src: award.specialCard.image, alt: award.specialCard.name, emoji: award.specialCard.emoji, className: "w-32 h-32 rounded-sm mx-auto mb-2 border border-[#1F3A5F]/20 text-5xl" }), /* @__PURE__ */ React.createElement("p", { className: "mincho text-base font-bold text-[#1F3A5F] mb-1" }, award.specialCard.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed" }, award.specialCard.desc))), !fullScore && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-[#33507A]/70 mb-5" }, "10\u554F\u5168\u554F\u6B63\u89E3\u3067\u3001\u51FA\u984C\u3055\u308C\u305F\u5730\u57DF\u306E\u30AB\u30FC\u30C9\u304C\u3082\u3089\u3048\u307E\u3059\u3002\u6B21\u306F\u6E80\u70B9\u3092\u72D9\u3063\u3066\u307F\u307E\u3057\u3087\u3046\u3002"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: onHome, className: "flex-1 mincho font-bold py-3 rounded-sm border-2 border-[#1F3A5F] text-[#1F3A5F]" }, "\u30DB\u30FC\u30E0\u3078"), /* @__PURE__ */ React.createElement("button", { onClick: onRetry, className: "flex-1 flex items-center justify-center gap-1 mincho font-bold py-3 rounded-sm text-white", style: { backgroundColor: "#1F3A5F" } }, /* @__PURE__ */ React.createElement(IconRotateCcw, { size: 16 }), " \u3082\u3046\u4E00\u5EA6")));
 }
 function AlbumScreen({ albumProgress, loaded }) {
   if (!loaded) {
@@ -568,7 +616,7 @@ function AlbumScreen({ albumProgress, loaded }) {
           className: "border rounded-sm p-2 text-center",
           style: { borderColor: "#1F3A5F", opacity: got ? 1 : 0.55, backgroundColor: "#FBF9F3" }
         },
-        got && card.image ? /* @__PURE__ */ React.createElement("img", { src: card.image, alt: card.name, className: "w-full aspect-square object-cover rounded-sm mb-1" }) : /* @__PURE__ */ React.createElement("div", { className: "text-3xl mb-1", style: { filter: got ? "none" : "grayscale(100%)" } }, got ? card.emoji : "\u2754"),
+        got ? /* @__PURE__ */ React.createElement(CardImage, { src: card.image, alt: card.name, emoji: card.emoji, className: "w-full aspect-square rounded-sm mb-1 text-3xl" }) : /* @__PURE__ */ React.createElement("div", { className: "w-full aspect-square flex items-center justify-center rounded-sm mb-1 text-3xl", style: { filter: "grayscale(100%)" } }, "\u2754"),
         /* @__PURE__ */ React.createElement("div", { className: "text-[10px] leading-tight text-[#1F3A5F]" }, got ? card.name : "\u672A\u7372\u5F97")
       );
     }), /* @__PURE__ */ React.createElement(
@@ -577,7 +625,7 @@ function AlbumScreen({ albumProgress, loaded }) {
         className: "border-2 rounded-sm p-2 text-center",
         style: { borderColor: "#B7410E", opacity: state.specialUnlocked ? 1 : 0.55, backgroundColor: "#FBF9F3" }
       },
-      state.specialUnlocked && region.specialCard.image ? /* @__PURE__ */ React.createElement("img", { src: region.specialCard.image, alt: region.specialCard.name, className: "w-full aspect-square object-cover rounded-sm mb-1" }) : /* @__PURE__ */ React.createElement("div", { className: "text-3xl mb-1", style: { filter: state.specialUnlocked ? "none" : "grayscale(100%)" } }, state.specialUnlocked ? region.specialCard.emoji : "\u{1F381}"),
+      state.specialUnlocked ? /* @__PURE__ */ React.createElement(CardImage, { src: region.specialCard.image, alt: region.specialCard.name, emoji: region.specialCard.emoji, className: "w-full aspect-square rounded-sm mb-1 text-3xl" }) : /* @__PURE__ */ React.createElement("div", { className: "w-full aspect-square flex items-center justify-center rounded-sm mb-1 text-3xl", style: { filter: "grayscale(100%)" } }, "\u{1F381}"),
       /* @__PURE__ */ React.createElement("div", { className: "text-[10px] leading-tight text-[#1F3A5F]" }, state.specialUnlocked ? region.specialCard.name : "\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u7279\u5178")
     )));
   }));
