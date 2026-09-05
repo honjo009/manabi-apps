@@ -1,3 +1,6 @@
+
+
+Index · HTML
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,9 +9,9 @@
 <title>受験師たち</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
-
+ 
   * { box-sizing: border-box; }
-
+ 
   html, body {
     margin: 0;
     padding: 0;
@@ -18,7 +21,7 @@
     color: #1C1F26;
     -webkit-font-smoothing: antialiased;
   }
-
+ 
   .bg-art {
     position: fixed;
     inset: 0;
@@ -27,12 +30,12 @@
     z-index: 0;
     overflow: hidden;
   }
-
+ 
   .bg-art svg {
     width: 100%;
     height: 100%;
   }
-
+ 
   .wrap {
     position: relative;
     z-index: 1;
@@ -40,11 +43,11 @@
     margin: 0 auto;
     padding: 0 20px 70px;
   }
-
+ 
   .hero {
     padding: 56px 4px 30px;
   }
-
+ 
   .eyebrow {
     font-size: 11px;
     font-weight: 700;
@@ -52,7 +55,7 @@
     color: #8B8FA3;
     margin-bottom: 10px;
   }
-
+ 
   h1 {
     font-size: 34px;
     font-weight: 900;
@@ -61,7 +64,7 @@
     line-height: 1.25;
     color: #14161C;
   }
-
+ 
   .hero-sub {
     margin-top: 10px;
     font-size: 13px;
@@ -69,31 +72,31 @@
     color: #6B7080;
     letter-spacing: 0.02em;
   }
-
+ 
   .subject {
     margin-bottom: 30px;
   }
-
+ 
   .subject-head {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 12px;
   }
-
+ 
   .subject-title {
     font-size: 13px;
     font-weight: 700;
     color: #4B4F5C;
     letter-spacing: 0.04em;
   }
-
+ 
   .app-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
-
+ 
   a.app-card, .app-card {
     display: flex;
     align-items: center;
@@ -107,17 +110,17 @@
     box-shadow: 0 1px 2px rgba(20, 22, 28, 0.04);
     transition: box-shadow 0.15s ease, transform 0.15s ease;
   }
-
+ 
   a.app-card:active {
     transform: scale(0.98);
     box-shadow: none;
   }
-
+ 
   .app-name {
     font-size: 14.5px;
     font-weight: 500;
   }
-
+ 
   .app-arrow {
     width: 26px;
     height: 26px;
@@ -130,19 +133,19 @@
     font-size: 13px;
     flex-shrink: 0;
   }
-
+ 
   .app-card.disabled {
     background: #FBFBFC;
     color: #A7ABB8;
     box-shadow: none;
     pointer-events: none;
   }
-
+ 
   .app-card.disabled .app-arrow {
     background: #E7E8EC;
     color: #B6B9C4;
   }
-
+ 
   .badge-soon {
     display: inline-block;
     font-size: 10px;
@@ -157,11 +160,11 @@
 </style>
 </head>
 <body>
-
+ 
 <div class="bg-art">
 <svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
   <rect width="400" height="800" fill="#FBF8F1"/>
-
+ 
   <!-- 淡い色面(オリジナルの構図。参考画像の配色イメージを踏襲) -->
   <path d="M0,0 C60,40 40,120 90,150 C150,190 130,60 220,40 C280,26 320,10 400,0 L400,0 L0,0 Z"
         fill="#CFE3DC" opacity="0.55"/>
@@ -169,15 +172,15 @@
         fill="#D8EAE2" opacity="0.35"/>
   <path d="M420,40 C380,70 400,140 360,170 C320,200 340,90 300,70 C270,55 260,30 260,0 L420,0 Z"
         fill="#EDE3CE" opacity="0.6"/>
-
+ 
   <path d="M420,300 C360,340 380,420 320,470 C260,520 300,560 260,620 C220,680 260,740 220,800 L420,800 Z"
         fill="#C9D9E6" opacity="0.5"/>
   <path d="M420,340 C370,380 390,440 340,480 C290,520 320,560 290,610 C260,660 290,710 260,760 L420,760 Z"
         fill="#B7CBDA" opacity="0.4"/>
-
+ 
   <path d="M-20,620 C40,600 60,660 120,650 C180,640 170,700 130,730 C90,760 40,760 -20,740 Z"
         fill="#EFE6D8" opacity="0.55"/>
-
+ 
   <!-- 星の散らし -->
   <g fill="#C9A876" opacity="0.55">
     <path d="M40 60 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
@@ -186,7 +189,7 @@
     <path d="M330 40 l2.6 6.4 6.4 2.6 -6.4 2.6 -2.6 6.4 -2.6 -6.4 -6.4 -2.6 6.4 -2.6 z"/>
     <path d="M355 380 l2.2 5.4 5.4 2.2 -5.4 2.2 -2.2 5.4 -2.2 -5.4 -5.4 -2.2 5.4 -2.2 z"/>
   </g>
-
+ 
   <!-- コンパス(線画) -->
   <g transform="translate(60,90)" opacity="0.5">
     <circle r="34" fill="none" stroke="#8A93A6" stroke-width="2"/>
@@ -195,7 +198,7 @@
     <path d="M-24,0 L0,-6 L24,0 L0,6 Z" fill="#B9C2D2"/>
     <circle r="3.5" fill="#5A6478"/>
   </g>
-
+ 
   <!-- 開いた本(線画) -->
   <g transform="translate(150,230)" opacity="0.5">
     <path d="M-40,-6 C-30,-16 -10,-16 0,-6 C10,-16 30,-16 40,-6 L40,20 C30,10 10,10 0,20 C-10,10 -30,10 -40,20 Z"
@@ -203,13 +206,13 @@
     <path d="M0,-6 L0,20" stroke="#A9B2C2" stroke-width="1"/>
     <path d="M18,26 L26,10 L34,28" fill="#C9754E" opacity="0.7"/>
   </g>
-
+ 
   <!-- 五角形の淡い発光図形 -->
   <g transform="translate(230,90)" opacity="0.6">
     <polygon points="0,-30 28,-9 18,26 -18,26 -28,-9" fill="none" stroke="#BFD6DE" stroke-width="2"/>
     <path d="M20 -34 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z" fill="#FFFFFF"/>
   </g>
-
+ 
   <!-- さくらの小枝 -->
   <g transform="translate(330,470)" opacity="0.55">
     <path d="M0,60 C4,30 10,10 20,-30" fill="none" stroke="#9AA6AE" stroke-width="1.6"/>
@@ -220,7 +223,7 @@
       <circle cx="30" cy="-4" r="4.5"/>
     </g>
   </g>
-
+ 
   <!-- 分子の小さな落書き -->
   <g transform="translate(300,150)" stroke="#B7A98C" stroke-width="1.2" opacity="0.5" fill="none">
     <circle cx="0" cy="0" r="3"/>
@@ -232,19 +235,19 @@
 </svg>
 </div>
 <div class="wrap">
-
+ 
   <div class="hero">
     <div class="eyebrow">中学受験・学習アプリ集</div>
     <h1>受験師たち</h1>
     <div class="hero-sub">TOKYO SHINGAKUKO</div>
   </div>
-
+ 
   <div class="subject">
     <div class="subject-head">
       <span class="subject-title">地理</span>
     </div>
     <div class="app-list">
-      <a class="app-card" href="geography/kanto-chiri-quiz/">
+      <a class="app-card" href="geography/chiri-quiz/">
         <span class="app-name">クイズ地理オネア</span>
         <span class="app-arrow">→</span>
       </a>
@@ -254,7 +257,7 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="subject">
     <div class="subject-head">
       <span class="subject-title">歴史</span>
@@ -266,7 +269,7 @@
       </a>
     </div>
   </div>
-
+ 
   <div class="subject">
     <div class="subject-head">
       <span class="subject-title">地学</span>
@@ -282,7 +285,7 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="subject">
     <div class="subject-head">
       <span class="subject-title">生物</span>
@@ -294,7 +297,7 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="subject">
     <div class="subject-head">
       <span class="subject-title">化学</span>
@@ -306,7 +309,7 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="subject">
     <div class="subject-head">
       <span class="subject-title">物理</span>
@@ -318,7 +321,7 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="subject">
     <div class="subject-head">
       <span class="subject-title">国語</span>
@@ -330,7 +333,7 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="subject">
     <div class="subject-head">
       <span class="subject-title">算数</span>
@@ -342,7 +345,8 @@
       </div>
     </div>
   </div>
-
+ 
 </div>
 </body>
 </html>
+ 
