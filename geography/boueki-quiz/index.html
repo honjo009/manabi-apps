@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>貿易グラフ道場</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #F7F3E8; }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+"use strict";
+const { useState, useEffect, useMemo, useCallback } = React;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const PALETTE = ["#1F3A5F", "#B7410E", "#33507A", "#8A5FA6", "#5F7A3D", "#C08A2E"];
+const KANA = ["ア", "イ", "ウ", "エ"];
+const KIND_LABEL = { item: "品目当て", country: "国当て" };
+const FILTER_LABEL = { all: "すべて", item: "品目当て", country: "国当て" };
+const ROUND_SIZE = 10;
+const STORAGE_KEY = "boueki-dojo-scorelog";
+const LOG_LIMIT = 20;
+
+function filterQuestions(all, filter) {
+  if (filter === "all") return all;
+  return all.filter((q) => q.kind === filter);
+}
+
+function buildQueue(all, filter) {
+  const filtered = filterQuestions(all, filter);
+  const size = Math.min(ROUND_SIZE, filtered.length);
+  return shuffle(filtered).slice(0, size);
+}
+
+function resultComment(score, total) {
+  const rate = total > 0 ? score / total : 0;
+  if (rate === 1) return "満点です！お見事！";
+  if (rate >= 0.8) return "よくできました。あと少しで満点です。";
+  if (rate >= 0.5) return "まずまず。間違えた問題は解説を読み直しておきましょう。";
+  return "もう一度資料を見直してから再挑戦してみましょう。";
+}
+
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function PieChart({ data }) {
+  const total = data.reduce((s, d) => s + d.value, 0) || 1;
+  let cum = 0;
+  const stops = data.map((d, i) => {
+    const start = (cum / total) * 360;
+    cum += d.value;
+    const end = (cum / total) * 360;
+    return `${PALETTE[i % PALETTE.length]} ${start}deg ${end}deg`;
+  });
+  const bg = `conic-gradient(${stops.join(", ")})`;
+  return React.createElement(
+    "div",
+    { className: "flex flex-col items-center gap-4" },
+    React.createElement("div", {
+      className: "rounded-full shrink-0",
+      style: {
+        width: 190,
+        height: 190,
+        background: bg,
+        border: "3px solid #1F3A5F",
+        boxShadow: "0 2px 8px rgba(31,58,95,0.2)"
+      }
+    }),
+    React.createElement(
+      "div",
+      { className: "grid grid-cols-1 gap-1 w-full" },
+      data.map((d, i) =>
+        React.createElement(
+          "div",
+          { key: i, className: "flex items-center gap-2 text-xs text-[#1F2937]" },
+          React.createElement("span", {
+            className: "inline-block w-3 h-3 rounded-sm shrink-0",
+            style: { backgroundColor: PALETTE[i % PALETTE.length] }
+          }),
+          React.createElement("span", { className: "flex-1 truncate" }, d.name),
+          React.createElement("span", { className: "font-bold text-[#33507A]" }, d.value + "%")
+        )
+      )
+    )
+  );
+}
+
+function HomeScreen({ filter, onChangeFilter, onStart, poolCount, log, logLoaded, showLog, onToggleLog, onClearLog }) {
+  return React.createElement(
+    "div",
+    { className: "sans" },
+    React.createElement(
+      "div",
+      { className: "bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-5 mb-5" },
+      React.createElement("p", { className: "mincho text-xs font-bold text-[#1F3A5F] mb-2" }, "出題する範囲"),
+      React.createElement(
+        "div",
+        { className: "flex flex-wrap gap-2 mb-4" },
+        ["all", "item", "country"].map((f) => {
+          const on = filter === f;
+          return React.createElement(
+            "button",
+            {
+              key: f,
+              onClick: () => onChangeFilter(f),
+              className: "text-xs font-bold px-3 py-1.5 rounded-full border transition",
+              style: on
+                ? { backgroundColor: "#1F3A5F", borderColor: "#1F3A5F", color: "#fff" }
+                : { backgroundColor: "transparent", borderColor: "rgba(31,58,95,0.4)", color: "#1F3A5F" }
+            },
+            FILTER_LABEL[f]
+          );
+        })
+      ),
+      React.createElement(
+        "p",
+        { className: "text-sm text-[#33507A] leading-relaxed mb-4" },
+        "選択中の範囲から全", poolCount, "問、ランダムで", Math.min(ROUND_SIZE, poolCount), "問出題します。",
+        React.createElement("br", null),
+        "円グラフを読み取って、輸入品目や輸入相手国を当てましょう。"
+      ),
+      React.createElement(
+        "button",
+        {
+          onClick: onStart,
+          disabled: poolCount === 0,
+          className: "w-full mincho text-lg font-bold py-3 rounded-sm text-white transition active:scale-[0.98] disabled:opacity-40",
+          style: { backgroundColor: "#1F3A5F" }
+        },
+        "スタート"
+      )
+    ),
+    React.createElement(
+      "div",
+      { className: "bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-4" },
+      React.createElement(
+        "div",
+        { className: "flex items-center justify-between mb-3" },
+        React.createElement("h2", { className: "mincho text-sm font-bold text-[#1F3A5F]" }, "成績ログ(直近", LOG_LIMIT, "回まで)"),
+        log.length > 0 &&
+          React.createElement(
+            "button",
+            { onClick: onClearLog, className: "text-[11px] text-[#33507A]/70 underline" },
+            "ログを削除"
+          )
+      ),
+      !logLoaded && React.createElement("p", { className: "text-xs text-[#33507A]/60" }, "読み込み中..."),
+      logLoaded && log.length === 0 &&
+        React.createElement("p", { className: "text-xs text-[#33507A]/60" }, "まだ記録がありません。10問解き終えると記録されます。"),
+      logLoaded && log.length > 0 &&
+        React.createElement(
+          "ul",
+          { className: "space-y-1 max-h-48 overflow-y-auto" },
+          log.map((e, i) =>
+            React.createElement(
+              "li",
+              { key: i, className: "flex justify-between text-xs text-[#33507A] border-b border-[#1F3A5F]/10 py-1" },
+              React.createElement("span", null, formatDateTime(e.date)),
+              React.createElement("span", null, FILTER_LABEL[e.filter] || e.filter),
+              React.createElement("span", { className: "font-bold" }, e.score, " / ", e.total)
+            )
+          )
+        )
+    )
+  );
+}
+
+function QuizScreen({ q, index, total, onNext }) {
+  const [selected, setSelected] = useState(null);
+  useEffect(() => {
+    setSelected(null);
+  }, [q]);
+
+  const isCorrect = selected === q.answer;
+
+  const handleSelect = (choice) => {
+    if (selected) return;
+    setSelected(choice);
+  };
+
+  return React.createElement(
+    "div",
+    { className: "sans" },
+    React.createElement(
+      "div",
+      { className: "flex items-center justify-between mb-3" },
+      React.createElement("span", { className: "text-xs text-[#33507A]" }, "資料", String(index + 1).padStart(2, "0"), " / ", total, "問"),
+      React.createElement(
+        "span",
+        { className: "text-[10px] px-2 py-0.5 rounded-full border border-[#1F3A5F]/40 text-[#1F3A5F]" },
+        KIND_LABEL[q.kind]
+      )
+    ),
+    React.createElement(
+      "div",
+      { className: "bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-4 mb-4" },
+      React.createElement("p", { className: "mincho text-sm font-bold text-[#1F2937] mb-3 leading-relaxed" }, q.title),
+      React.createElement(PieChart, { data: q.data })
+    ),
+    React.createElement(
+      "p",
+      { className: "text-sm text-[#1F2937] leading-relaxed mb-3" },
+      q.kind === "item"
+        ? "このグラフは、日本のある輸入品目について、輸入相手国別の割合を示したものである。この品目として最も適切なものを選びなさい。"
+        : "このグラフは、日本がある国から輸入している品目別の割合を示したものである。この国として最も適切なものを選びなさい。"
+    ),
+    React.createElement(
+      "div",
+      { className: "space-y-2.5" },
+      q.choices.map((choice, i) => {
+        const isPicked = selected === choice;
+        const isAnswer = q.answer === choice;
+        let style = "border-[#1F3A5F]/30 bg-white/70 text-[#1F2937]";
+        if (selected) {
+          if (isAnswer) style = "border-[#1F3A5F] bg-[#1F3A5F]/10 text-[#1F3A5F] font-bold";
+          else if (isPicked) style = "border-[#B7410E] bg-[#B7410E]/10 text-[#B7410E]";
+        }
+        return React.createElement(
+          "button",
+          {
+            key: choice,
+            disabled: !!selected,
+            onClick: () => handleSelect(choice),
+            className: `w-full text-left text-sm p-3.5 rounded-sm border transition leading-relaxed flex gap-2 ${style}`
+          },
+          React.createElement("span", { className: "mincho font-bold shrink-0" }, KANA[i]),
+          React.createElement("span", null, choice)
+        );
+      })
+    ),
+    selected &&
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(
+          "div",
+          {
+            className: "mt-4 text-sm font-bold rounded-sm p-3 border",
+            style: isCorrect
+              ? { color: "#1F3A5F", backgroundColor: "rgba(31,58,95,0.08)", borderColor: "rgba(31,58,95,0.3)" }
+              : { color: "#B7410E", backgroundColor: "rgba(183,65,14,0.08)", borderColor: "rgba(183,65,14,0.3)" }
+          },
+          isCorrect ? "○ せいかい！" : `✕ 残念…正解は「${q.answer}」`
+        ),
+        React.createElement(
+          "div",
+          { className: "mt-3 bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-3" },
+          React.createElement("span", { className: "mincho text-[11px] font-bold text-[#B7410E] block mb-1" }, "先生の解説"),
+          React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed" }, q.note)
+        ),
+        React.createElement(
+          "button",
+          {
+            onClick: () => onNext(isCorrect),
+            className: "w-full mt-4 mincho font-bold py-3 rounded-sm text-white",
+            style: { backgroundColor: "#1F3A5F" }
+          },
+          index + 1 >= total ? "結果を見る →" : "次の問題へ →"
+        )
+      )
+  );
+}
+
+function ResultScreen({ score, total, onRetry }) {
+  return React.createElement(
+    "div",
+    { className: "sans text-center" },
+    React.createElement(
+      "div",
+      { className: "bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-6 mb-5" },
+      React.createElement("p", { className: "mincho text-sm text-[#33507A] mb-2" }, "採点済み"),
+      React.createElement(
+        "p",
+        { className: "mincho text-4xl font-extrabold text-[#1F3A5F] mb-1" },
+        score,
+        React.createElement("span", { className: "text-lg font-normal text-[#33507A]" }, " / ", total, "問正解")
+      ),
+      React.createElement("p", { className: "text-xs text-[#33507A] mt-3" }, resultComment(score, total))
+    ),
+    React.createElement(
+      "button",
+      {
+        onClick: onRetry,
+        className: "w-full mincho font-bold py-3 rounded-sm text-white",
+        style: { backgroundColor: "#1F3A5F" }
+      },
+      "もう10問挑戦する"
+    )
+  );
+}
+
+function App() {
+  const [screen, setScreen] = useState("home");
+  const [questions, setQuestions] = useState([]);
+  const [questionsLoaded, setQuestionsLoaded] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [queue, setQueue] = useState([]);
+  const [qIndex, setQIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [log, setLog] = useState([]);
+  const [logLoaded, setLogLoaded] = useState(false);
+  const [showLog, setShowLog] = useState(true);
+
+  useEffect(() => {
+    fetch("questions.json")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        setQuestions(data);
+        setQuestionsLoaded(true);
+      })
+      .catch(() => setQuestionsLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) setLog(JSON.parse(raw));
+    } catch (e) {
+      // 記録がまだ無い場合はログなしのまま
+    } finally {
+      setLogLoaded(true);
+    }
+  }, []);
+
+  const poolCount = useMemo(() => filterQuestions(questions, filter).length, [questions, filter]);
+
+  const startSession = useCallback(() => {
+    const picked = buildQueue(questions, filter);
+    setQueue(picked);
+    setQIndex(0);
+    setScore(0);
+    setScreen("quiz");
+  }, [questions, filter]);
+
+  const handleNext = useCallback(
+    (wasCorrect) => {
+      const newScore = score + (wasCorrect ? 1 : 0);
+      if (qIndex + 1 >= queue.length) {
+        setScore(newScore);
+        const entry = { date: new Date().toISOString(), score: newScore, total: queue.length, filter };
+        const newLog = [entry, ...log].slice(0, LOG_LIMIT);
+        setLog(newLog);
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(newLog));
+        } catch (e) {
+          // 保存に失敗しても画面表示は継続する
+        }
+        setScreen("result");
+      } else {
+        setScore(newScore);
+        setQIndex((i) => i + 1);
+      }
+    },
+    [qIndex, queue, score, log, filter]
+  );
+
+  const clearLog = useCallback(() => {
+    setLog([]);
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {}
+  }, []);
+
+  const gridBg = {
+    backgroundColor: "#F7F3E8",
+    backgroundImage:
+      "linear-gradient(rgba(31,58,95,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(31,58,95,0.08) 1px, transparent 1px)",
+    backgroundSize: "24px 24px",
+    minHeight: "100vh"
+  };
+
+  return React.createElement(
+    "div",
+    { style: gridBg, className: "flex flex-col items-center px-4 py-8" },
+    React.createElement(
+      "style",
+      null,
+      `
+      @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+      .mincho { font-family: 'Shippori Mincho', serif; }
+      .sans { font-family: 'Noto Sans JP', sans-serif; }
+      `
+    ),
+    React.createElement(
+      "div",
+      { className: "w-full max-w-md" },
+      React.createElement(
+        "header",
+        { className: "flex items-center justify-between mb-6" },
+        React.createElement(
+          "div",
+          { className: "text-center flex-1" },
+          React.createElement("p", { className: "sans text-xs tracking-widest text-[#33507A] mb-1" }, "中学受験・社会 貿易"),
+          React.createElement(
+            "h1",
+            { className: "mincho text-2xl font-bold text-[#1F3A5F] border-b-2 border-[#1F3A5F] pb-2 inline-block" },
+            "貿易グラフ道場"
+          )
+        ),
+        screen !== "home" &&
+          React.createElement(
+            "button",
+            {
+              onClick: () => setScreen("home"),
+              className: "mincho text-xs font-bold text-white px-3 py-2 rounded-sm shrink-0",
+              style: { backgroundColor: "#1F3A5F" }
+            },
+            "ホームへ"
+          )
+      ),
+      !questionsLoaded &&
+        React.createElement(
+          "div",
+          { className: "sans text-center text-sm text-[#33507A] bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-6" },
+          "読み込み中..."
+        ),
+      questionsLoaded &&
+        React.createElement(
+          React.Fragment,
+          null,
+          screen === "home" &&
+            React.createElement(HomeScreen, {
+              filter,
+              onChangeFilter: setFilter,
+              onStart: startSession,
+              poolCount,
+              log,
+              logLoaded,
+              showLog,
+              onToggleLog: () => setShowLog((s) => !s),
+              onClearLog: clearLog
+            }),
+          screen === "quiz" &&
+            queue.length > 0 &&
+            React.createElement(QuizScreen, {
+              q: queue[qIndex],
+              index: qIndex,
+              total: queue.length,
+              onNext: handleNext
+            }),
+          screen === "result" &&
+            React.createElement(ResultScreen, {
+              score,
+              total: queue.length,
+              onRetry: startSession
+            })
+        ),
+      React.createElement(
+        "p",
+        { className: "text-[10px] text-[#33507A]/60 mt-6 leading-relaxed text-center" },
+        "※本アプリの数値は学習用に丸めた概算値です。正確な最新統計は財務省「貿易統計」等でご確認ください。成績ログはこの端末・ブラウザ内に保存され、直近", LOG_LIMIT, "回分のみ保持されます。"
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
