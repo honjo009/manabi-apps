@@ -3,10 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>受験師たち</title>
+<title>カド番からの出口</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
-
   * { box-sizing: border-box; }
 
   html, body {
@@ -14,23 +12,9 @@
     padding: 0;
     min-height: 100%;
     font-family: 'Noto Sans JP', sans-serif;
-    background: #FBF8F1;
-    color: #1C1F26;
+    background: #FFDD00;
+    color: #0A0A0A;
     -webkit-font-smoothing: antialiased;
-  }
-
-  .bg-art {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 0;
-    overflow: hidden;
-  }
-
-  .bg-art svg {
-    width: 100%;
-    height: 100%;
   }
 
   .wrap {
@@ -49,25 +33,53 @@
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.28em;
-    color: #8B8FA3;
+    color: #0A0A0A;
+    opacity: 0.6;
     margin-bottom: 10px;
   }
 
   h1 {
-    font-size: 34px;
-    font-weight: 900;
-    letter-spacing: 0.01em;
     margin: 0;
-    line-height: 1.25;
-    color: #14161C;
+    line-height: 1.15;
+    color: #0A0A0A;
+    letter-spacing: 0.01em;
+  }
+
+  h1 .big {
+    font-size: 46px;
+    font-weight: 900;
+  }
+
+  h1 .tiny {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    margin: 0 1px;
+    vertical-align: middle;
+  }
+
+  h1 .quarter {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+  }
+
+  h1 .kado {
+    font-size: 23px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
   }
 
   .hero-sub {
     margin-top: 10px;
     font-size: 13px;
-    font-weight: 400;
-    color: #6B7080;
+    font-weight: 500;
+    color: #0A0A0A;
+    opacity: 0.65;
     letter-spacing: 0.02em;
+    text-align: right;
   }
 
   .subject {
@@ -84,27 +96,28 @@
   .subject-title {
     font-size: 13px;
     font-weight: 700;
-    color: #4B4F5C;
+    color: #0A0A0A;
+    opacity: 0.7;
     letter-spacing: 0.04em;
   }
 
   .app-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 7px;
   }
 
   a.app-card, .app-card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #FFFFFF;
-    border: 1px solid #ECEDF1;
-    border-radius: 14px;
-    padding: 16px 18px;
+    background: #FFFDF3;
+    border: 2px solid #0A0A0A;
+    border-radius: 12px;
+    padding: 8px 16px;
     text-decoration: none;
-    color: #1C1F26;
-    box-shadow: 0 1px 2px rgba(20, 22, 28, 0.04);
+    color: #0A0A0A;
+    box-shadow: 0 2px 0 rgba(10, 10, 10, 0.15);
     transition: box-shadow 0.15s ease, transform 0.15s ease;
   }
 
@@ -115,40 +128,42 @@
 
   .app-name {
     font-size: 14.5px;
-    font-weight: 500;
+    font-weight: 700;
   }
 
   .app-arrow {
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: #14161C;
-    color: #fff;
+    background: #0A0A0A;
+    color: #FFDD00;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 700;
     flex-shrink: 0;
   }
 
   .app-card.disabled {
-    background: #FBFBFC;
-    color: #A7ABB8;
+    background: rgba(10, 10, 10, 0.04);
+    border-color: rgba(10, 10, 10, 0.25);
+    color: rgba(10, 10, 10, 0.4);
     box-shadow: none;
     pointer-events: none;
   }
 
   .app-card.disabled .app-arrow {
-    background: #E7E8EC;
-    color: #B6B9C4;
+    background: rgba(10, 10, 10, 0.15);
+    color: rgba(10, 10, 10, 0.35);
   }
 
   .badge-soon {
     display: inline-block;
     font-size: 10px;
     font-weight: 700;
-    background: #EFF0F3;
-    color: #9A9EAC;
+    background: rgba(10, 10, 10, 0.08);
+    color: rgba(10, 10, 10, 0.5);
     border-radius: 20px;
     padding: 2px 9px;
     margin-left: 8px;
@@ -158,85 +173,11 @@
 </head>
 <body>
 
-<div class="bg-art">
-<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="800" fill="#FBF8F1"/>
-
-  <!-- 淡い色面(オリジナルの構図。参考画像の配色イメージを踏襲) -->
-  <path d="M0,0 C60,40 40,120 90,150 C150,190 130,60 220,40 C280,26 320,10 400,0 L400,0 L0,0 Z"
-        fill="#CFE3DC" opacity="0.55"/>
-  <path d="M-20,120 C60,150 70,230 140,250 C210,270 190,150 270,140 C330,132 370,150 420,170 L420,-20 L-20,-20 Z"
-        fill="#D8EAE2" opacity="0.35"/>
-  <path d="M420,40 C380,70 400,140 360,170 C320,200 340,90 300,70 C270,55 260,30 260,0 L420,0 Z"
-        fill="#EDE3CE" opacity="0.6"/>
-
-  <path d="M420,300 C360,340 380,420 320,470 C260,520 300,560 260,620 C220,680 260,740 220,800 L420,800 Z"
-        fill="#C9D9E6" opacity="0.5"/>
-  <path d="M420,340 C370,380 390,440 340,480 C290,520 320,560 290,610 C260,660 290,710 260,760 L420,760 Z"
-        fill="#B7CBDA" opacity="0.4"/>
-
-  <path d="M-20,620 C40,600 60,660 120,650 C180,640 170,700 130,730 C90,760 40,760 -20,740 Z"
-        fill="#EFE6D8" opacity="0.55"/>
-
-  <!-- 星の散らし -->
-  <g fill="#C9A876" opacity="0.55">
-    <path d="M40 60 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
-    <path d="M70 110 l2.4 6 6 2.4 -6 2.4 -2.4 6 -2.4 -6 -6 -2.4 6 -2.4 z"/>
-    <path d="M30 150 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z"/>
-    <path d="M330 40 l2.6 6.4 6.4 2.6 -6.4 2.6 -2.6 6.4 -2.6 -6.4 -6.4 -2.6 6.4 -2.6 z"/>
-    <path d="M355 380 l2.2 5.4 5.4 2.2 -5.4 2.2 -2.2 5.4 -2.2 -5.4 -5.4 -2.2 5.4 -2.2 z"/>
-  </g>
-
-  <!-- コンパス(線画) -->
-  <g transform="translate(60,90)" opacity="0.5">
-    <circle r="34" fill="none" stroke="#8A93A6" stroke-width="2"/>
-    <circle r="27" fill="none" stroke="#8A93A6" stroke-width="1"/>
-    <path d="M0,-24 L7,0 L0,24 L-7,0 Z" fill="#C9A876"/>
-    <path d="M-24,0 L0,-6 L24,0 L0,6 Z" fill="#B9C2D2"/>
-    <circle r="3.5" fill="#5A6478"/>
-  </g>
-
-  <!-- 開いた本(線画) -->
-  <g transform="translate(150,230)" opacity="0.5">
-    <path d="M-40,-6 C-30,-16 -10,-16 0,-6 C10,-16 30,-16 40,-6 L40,20 C30,10 10,10 0,20 C-10,10 -30,10 -40,20 Z"
-          fill="#FFFFFF" stroke="#A9B2C2" stroke-width="1.4"/>
-    <path d="M0,-6 L0,20" stroke="#A9B2C2" stroke-width="1"/>
-    <path d="M18,26 L26,10 L34,28" fill="#C9754E" opacity="0.7"/>
-  </g>
-
-  <!-- 五角形の淡い発光図形 -->
-  <g transform="translate(230,90)" opacity="0.6">
-    <polygon points="0,-30 28,-9 18,26 -18,26 -28,-9" fill="none" stroke="#BFD6DE" stroke-width="2"/>
-    <path d="M20 -34 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z" fill="#FFFFFF"/>
-  </g>
-
-  <!-- さくらの小枝 -->
-  <g transform="translate(330,470)" opacity="0.55">
-    <path d="M0,60 C4,30 10,10 20,-30" fill="none" stroke="#9AA6AE" stroke-width="1.6"/>
-    <g fill="#E8AFB9">
-      <circle cx="18" cy="-30" r="5"/>
-      <circle cx="28" cy="-22" r="5"/>
-      <circle cx="10" cy="-18" r="4.5"/>
-      <circle cx="30" cy="-4" r="4.5"/>
-    </g>
-  </g>
-
-  <!-- 分子の小さな落書き -->
-  <g transform="translate(300,150)" stroke="#B7A98C" stroke-width="1.2" opacity="0.5" fill="none">
-    <circle cx="0" cy="0" r="3"/>
-    <circle cx="14" cy="8" r="3"/>
-    <circle cx="6" cy="-12" r="3"/>
-    <line x1="0" y1="0" x2="14" y2="8"/>
-    <line x1="0" y1="0" x2="6" y2="-12"/>
-  </g>
-</svg>
-</div>
 <div class="wrap">
 
   <div class="hero">
-    <div class="eyebrow">中学受験・学習アプリ集</div>
-    <h1>受験師たち</h1>
-    <div class="hero-sub">TOKYO SHINGAKUKO</div>
+    <h1><span class="kado">カド</span><span class="big">番</span><span class="tiny">からの</span><span class="big">出口</span> <span class="big">4</span> <span class="quarter">Exit</span></h1>
+    <div class="hero-sub">凡ミスを見逃すな</div>
   </div>
 
   <div class="subject">
