@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>瀕死の品詞｜国語文法・資料集ドリル</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="sheet">
+
+      <div class="masthead">
+        <div class="title">
+          <small>国語文法・資料集ドリル</small>
+          瀕死の品詞
+        </div>
+        <div class="score">
+          今回<br />
+          <b id="score-correct">0</b> / <span id="score-total">0</span>
+        </div>
+      </div>
+
+      <!-- ---- 出題画面 ---- -->
+      <div id="quiz-view">
+        <div class="method-box">
+          <div class="mb-title">■ 見分け方のコツ（文中で活用している形に注意）</div>
+          線部は言い切りの形とは限りません。もとの語まで頭の中で戻して考えましょう。<br />
+          名詞：活用しない（例：美し<u>さ</u>、笑<u>い</u>）。<br />
+          動詞：連用形・仮定形・命令形などに活用（例：楽しん<u>で</u>、降れ<u>ば</u>、行<u>け</u>）。<br />
+          形容詞：連用形「く」・仮定形「ければ」などに活用（例：青<u>く</u>、安けれ<u>ば</u>）。<br />
+          形容動詞：連用形「に・で」・仮定形「なら」などに活用（例：静か<u>に</u>、正直<u>なら</u>）。<br />
+          連体詞：活用せず、体言（名詞）だけを修飾する（例：<u>あらゆる</u>手段、<u>小さな</u>声）。<br />
+          副詞：活用せず、用言（動詞・形容詞・形容動詞）を修飾する（例：<u>すぐに</u>戻る、<u>ゆっくり</u>歩く）。
+        </div>
+
+        <div class="card">
+          <div class="q-label">
+            問　次の各文の――線部の単語の品詞名をあとから選び、記号で答えなさい。
+            （<span id="q-index">1</span> / <span id="q-total">10</span>）
+          </div>
+
+          <div class="sentence" id="sentence"></div>
+
+          <div class="choices" id="choices"></div>
+
+          <div id="stamp-area"></div>
+          <div id="explain-area"></div>
+
+          <button class="next-btn" id="next-btn" style="display:none;"></button>
+        </div>
+      </div>
+
+      <!-- ---- 結果画面 ---- -->
+      <div id="result-view" style="display:none;">
+        <div class="result-card">
+          <div class="result-label">今回の結果</div>
+          <div class="result-score">
+            <span id="result-correct">0</span><span> / <span id="result-total">0</span></span>
+          </div>
+          <div class="result-comment" id="result-comment"></div>
+
+          <div class="streak-note" id="streak-note"></div>
+
+          <div class="bonus-panel" id="bonus-panel" style="display:none;">
+            <div class="bonus-label" id="bonus-label"></div>
+            <img id="bonus-img" src="" alt="ボーナス画像" />
+          </div>
+
+          <div class="result-actions">
+            <button class="primary" id="retry-btn">もう一度挑戦する</button>
+            <button id="show-log-btn">スコアログを見る</button>
+            <button id="show-gallery-btn">獲得画像を見る</button>
+          </div>
+          <div class="log-error" id="save-error" style="display:none;">
+            ログの保存に失敗しました。ネットワーク状況をご確認ください。
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- ログ画面 ---- -->
+      <div class="log-panel" id="log-view" style="display:none;">
+        <h3>スコアログ（直近20回）</h3>
+        <div class="log-sub">
+          この端末に保存された過去の実施記録です。満点連続記録：<span id="log-streak">0</span>回
+        </div>
+        <div id="log-body"></div>
+        <div class="result-actions" style="margin-top:16px;">
+          <button class="primary" id="close-log-btn">閉じる</button>
+        </div>
+      </div>
+
+      <!-- ---- 獲得画像コレクション画面 ---- -->
+      <div class="log-panel" id="gallery-view" style="display:none;">
+        <h3>獲得画像コレクション</h3>
+        <div class="log-sub">
+          満点を3回連続で達成するごとに1枚ランダムで獲得できます。獲得数：<span id="gallery-count">0 / 4</span>
+        </div>
+        <div class="gallery-grid" id="gallery-grid"></div>
+        <div class="result-actions" style="margin-top:16px;">
+          <button class="primary" id="close-gallery-btn">閉じる</button>
+        </div>
+      </div>
+
+      <div class="bottom-row">
+        <span>日本語文法ドリル ／ 中学受験対策</span>
+        <button class="link-btn" id="toggle-log-btn">スコアログを見る</button>
+        <button class="link-btn" id="toggle-gallery-btn">獲得画像を見る</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
