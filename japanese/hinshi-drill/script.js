@@ -60,6 +60,7 @@ function formatDate(iso) {
 }
 
 function pickBonusImage() {
+  if (BONUS_IMAGES.length === 0) return null;
   return BONUS_IMAGES[Math.floor(Math.random() * BONUS_IMAGES.length)];
 }
 
@@ -84,12 +85,29 @@ function storageSet(key, value) {
 
 // ---- 初期読み込み ----
 async function init() {
-  const res = await fetch("questions.json");
-  QUESTIONS = await res.json();
+  try {
+    const res = await fetch("questions.json");
+    if (!res.ok) throw new Error(`questions.json HTTP ${res.status}`);
+    QUESTIONS = await res.json();
+  } catch (e) {
+    console.error("questions.json の読み込みに失敗しました:", e);
+    document.querySelector(".card").innerHTML =
+      `<div class="explain"><span class="tag">エラー</span><div>` +
+      `問題データ(questions.json)を読み込めませんでした。ファイルの配置場所とファイル名を確認してください。` +
+      `</div></div>`;
+    return; // 問題データが無いと何もできないのでここで停止
+  }
 
-  const bonusRes = await fetch("bonus/bonus.json");
-  const bonusFiles = await bonusRes.json();
-  BONUS_IMAGES = bonusFiles.map((name) => `bonus/${name}`);
+  try {
+    const bonusRes = await fetch("bonus/bonus.json");
+    if (!bonusRes.ok) throw new Error(`bonus/bonus.json HTTP ${bonusRes.status}`);
+    const bonusFiles = await bonusRes.json();
+    BONUS_IMAGES = bonusFiles.map((name) => `bonus/${name}`);
+  } catch (e) {
+    // ボーナス画像は無くても本体のクイズ機能は動かせるので、ここで止めない
+    console.error("bonus/bonus.json の読み込みに失敗しました（ボーナス機能は無効化されます）:", e);
+    BONUS_IMAGES = [];
+  }
 
   const savedLog = storageGet(LOG_KEY);
   if (savedLog) log = savedLog;
