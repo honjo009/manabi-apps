@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>緯度・経度シミュレーター(地球儀)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #faf9f6; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+
+// ============ 3D 投影の設定 ============
+const R = 150; // 地球の半径
+const TILT = 18; // 視点の仰角(北極がやや上から見える角度)
+const CX = 210;
+const CY = 200;
+
+const toRad = (d) => (d * Math.PI) / 180;
+
+// 生の3D座標(球の中心を原点とする、傾ける前の座標)を画面座標へ投影
+function projectXYZ(X, Y, Z) {
+  const t = toRad(TILT);
+  const Yp = Y * Math.cos(t) - Z * Math.sin(t);
+  const Zp = Y * Math.sin(t) + Z * Math.cos(t);
+  return { x: CX + X, y: CY - Yp, z: Zp, X, Y, Z };
+}
+
+// 球面上の点 (colatitude=phi, longitude=lam) を画面座標へ投影
+// phi: 0=北極 180=南極
+// lam: 経度。90度を正面中央として扱う
+function project(phiDeg, lamDeg) {
+  const phi = toRad(phiDeg);
+  const lam = toRad(lamDeg);
+  const X = R * Math.sin(phi) * Math.cos(lam);
+  const Y = R * Math.cos(phi);
+  const Z = R * Math.sin(phi) * Math.sin(lam);
+  return projectXYZ(X, Y, Z);
+}
+
+const lamOf = (lonDeg) => 90 + lonDeg;
+
+// 点列を z の符号(手前/奥)で分割し、手前は実線、奥は破線として描くための
+// セグメント配列を作る
+function splitByVisibility(points) {
+  const segs = [];
+  let current = [];
+  let currentVisible = points[0].z >= 0;
+  for (const p of points) {
+    const visible = p.z >= 0;
+    if (visible !== currentVisible && current.length) {
+      segs.push({ visible: currentVisible, points: current });
+      current = [current[current.length - 1]];
+    }
+    current.push(p);
+    currentVisible = visible;
+  }
+  if (current.length) segs.push({ visible: currentVisible, points: current });
+  return segs;
+}
+
+function pointsToPath(points) {
+  return points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ");
+}
+
+// 経線(全周)のサンプル点
+function meridianPoints(lonDeg, step = 6) {
+  const lam = lamOf(lonDeg);
+  const pts = [];
+  for (let phi = 0; phi <= 360; phi += step) pts.push(project(phi, lam));
+  return pts;
+}
+
+// 緯線(全周)のサンプル点。phiFixed=90 なら赤道
+function latitudePoints(phiFixed, step = 6) {
+  const pts = [];
+  for (let lam = 0; lam <= 360; lam += step) pts.push(project(phiFixed, lam));
+  return pts;
+}
+const equatorPoints = (step) => latitudePoints(90, step);
+
+const norm = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(v)));
+
+// 中心(cx,cy)から見て、点p1の方向 → 点p2の方向へ弧を描くSVGパスを作る
+function angleArcPath(cx, cy, r, p1, p2) {
+  const a1 = Math.atan2(p1.y - cy, p1.x - cx);
+  const a2 = Math.atan2(p2.y - cy, p2.x - cx);
+  let diff = a2 - a1;
+  while (diff > Math.PI) diff -= 2 * Math.PI;
+  while (diff < -Math.PI) diff += 2 * Math.PI;
+  const sx = cx + r * Math.cos(a1);
+  const sy = cy + r * Math.sin(a1);
+  const ex = cx + r * Math.cos(a1 + diff);
+  const ey = cy + r * Math.sin(a1 + diff);
+  const sweep = diff > 0 ? 1 : 0;
+  const largeArc = Math.abs(diff) > Math.PI ? 1 : 0;
+  return `M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${r} ${r} 0 ${largeArc} ${sweep} ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+}
+
+// A点(本初子午線・赤道の交点)の見た目上の固定オフセット。
+// これを基準に経度の符号を反転させることで、東経/西経の向きが
+// 画面上で直感通りに動くようにする(過去の反転バグ対策)。
+const A_ANCHOR = 60;
+const lonToInternal = (trueLon) => A_ANCHOR - trueLon;
+
+function toEW(trueLonDeg) {
+  const d = Math.round(trueLonDeg);
+  if (d === 0) return "0°(本初子午線)";
+  return d > 0 ? `東経${d}°` : `西経${-d}°`;
+}
+function toNS(trueLatDeg) {
+  const d = Math.round(trueLatDeg);
+  if (d === 0) return "0°(赤道)";
+  return d > 0 ? `北緯${d}°` : `南緯${-d}°`;
+}
+
+const COLORS = {
+  A: "#2c5f8a", // 基準点(本初子午線・赤道)
+  B: "#c1553f", // 緯線(輪)
+  C: "#3f7d4f", // 経線
+  P: "#22262b", // 交点(答えの地点)
+};
+
+// 日本(固定・参考表示)
+const JAPAN = { lonE: 135, latN: 35 };
+
+function GlobeLatLonApp() {
+  const [lonC, setLonC] = useState(140); // C:経度(東経+/西経-)
+  const [latB, setLatB] = useState(35); // B:緯度(北緯+/南緯-)
+
+  const reset = () => {
+    setLonC(140);
+    setLatB(35);
+  };
+
+  const geometry = useMemo(() => {
+    const phiB = 90 - latB; // 緯線Bの余緯度
+    const lamC = lamOf(lonToInternal(lonC)); // 経線Cの経度(内部表現)
+    const lamA = lamOf(lonToInternal(0)); // 基準点Aの経度(内部表現・常に0°)
+    const lamJapan = lamOf(lonToInternal(JAPAN.lonE));
+    const phiJapan = 90 - JAPAN.latN;
+
+    const equator = splitByVisibility(equatorPoints());
+    const ringB = splitByVisibility(latitudePoints(phiB));
+    const meridianC = splitByVisibility(meridianPoints(lonToInternal(lonC)));
+    const meridianA = splitByVisibility(meridianPoints(lonToInternal(0)));
+    const japanLat = splitByVisibility(latitudePoints(phiJapan));
+    const japanMer = splitByVisibility(meridianPoints(lonToInternal(JAPAN.lonE)));
+
+    const pointA = project(90, lamA); // 本初子午線 × 赤道
+    const pointP = project(phiB, lamC); // B(緯度)× C(経度) の交点=答えの地点
+    const pointJapan = project(phiJapan, lamJapan);
+
+    // O:球の中心(赤道断面の中心でもある)
+    const pointO = projectXYZ(0, 0, 0);
+
+    // F:Pから赤道面(断面)へ下ろした垂線の足(=Pの真下・断面内の点)
+    const pointF = projectXYZ(pointP.X, 0, pointP.Z);
+
+    // OPと赤道断面のなす角(=Pの緯度と一致する)
+    const inPlaneLen = Math.sqrt(pointP.X * pointP.X + pointP.Z * pointP.Z);
+    const angleDeg = (Math.atan2(pointP.Y, inPlaneLen) * 180) / Math.PI;
+
+    // 断面(赤道で切った円)の塗りつぶし用パス
+    const equatorDiskPath = pointsToPath(equatorPoints()) + " Z";
+
+    // Oを中心に、OF→OPの向きへの角度弧
+    const arcPath = angleArcPath(pointO.x, pointO.y, 26, pointF, pointP);
+
+    return {
+      equator,
+      ringB,
+      meridianC,
+      meridianA,
+      japanLat,
+      japanMer,
+      pointA,
+      pointP,
+      pointJapan,
+      pointO,
+      pointF,
+      angleDeg,
+      equatorDiskPath,
+      arcPath,
+    };
+  }, [lonC, latB]);
+
+  const strokeFor = (visible, color, width = 1.8) => ({
+    stroke: visible ? color : "#d8d6cc",
+    strokeWidth: visible ? width : Math.max(1, width - 0.6),
+    strokeDasharray: visible ? "none" : "3 3",
+    fill: "none",
+    opacity: visible ? 0.9 : 0.6,
+  });
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#faf9f6",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "24px 16px 56px",
+        fontFamily: "'Hiragino Mincho ProN', 'Shippori Mincho', 'Noto Serif JP', serif",
+        color: "#22262b",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: 460 }}>
+        <h1 style={{ fontSize: 19, fontWeight: 700, margin: "0 0 4px" }}>
+          緯度・経度シミュレーター(地球儀)
+        </h1>
+        <p style={{ fontSize: 13, color: "#666", margin: "0 0 18px", lineHeight: 1.7 }}>
+          B(緯線の輪)を上下に、C(経線)を左右に動かすと、2本の線が交わる点 P
+          が地球上の1地点を表します。緯度と経度が交わって初めて「地点」が決まることを、
+          実際に線を動かしながら確かめましょう。
+        </p>
+
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid #e3e1da",
+            borderRadius: 12,
+            padding: 12,
+          }}
+        >
+          <svg viewBox="0 0 420 400" width="100%" height="auto" style={{ display: "block" }}>
+            <defs>
+              <clipPath id="sphereClip">
+                <circle cx={CX} cy={CY} r={R} />
+              </clipPath>
+            </defs>
+
+            <circle cx={CX} cy={CY} r={R} fill="#fff" stroke="#2a2a2a" strokeWidth="1.6" />
+
+            <g clipPath="url(#sphereClip)">
+              {/* 赤道で切断した断面(グレー) */}
+              <path d={geometry.equatorDiskPath} fill="#b7b5aa" opacity="0.55" stroke="#8f8d82" strokeWidth="1" />
+
+              {/* 赤道(常時・薄め) */}
+              {geometry.equator.map((seg, i) => (
+                <path key={`eq-${i}`} d={pointsToPath(seg.points)} {...strokeFor(seg.visible, "#9a988f", 1.2)} />
+              ))}
+
+              {/* 日本:参考の緯線・経線(細く・薄く) */}
+              {geometry.japanLat.map((seg, i) => (
+                <path
+                  key={`jlat-${i}`}
+                  d={pointsToPath(seg.points)}
+                  fill="none"
+                  stroke="#c9a8c2"
+                  strokeWidth="1"
+                  strokeDasharray="2 3"
+                  opacity={seg.visible ? 0.7 : 0.3}
+                />
+              ))}
+              {geometry.japanMer.map((seg, i) => (
+                <path
+                  key={`jmer-${i}`}
+                  d={pointsToPath(seg.points)}
+                  fill="none"
+                  stroke="#c9a8c2"
+                  strokeWidth="1"
+                  strokeDasharray="2 3"
+                  opacity={seg.visible ? 0.7 : 0.3}
+                />
+              ))}
+
+              {/* A:本初子午線(基準・固定) */}
+              {geometry.meridianA.map((seg, i) => (
+                <path key={`ma-${i}`} d={pointsToPath(seg.points)} {...strokeFor(seg.visible, COLORS.A, 1.4)} />
+              ))}
+
+              {/* B:緯線の輪(可動) */}
+              {geometry.ringB.map((seg, i) => (
+                <path key={`rb-${i}`} d={pointsToPath(seg.points)} {...strokeFor(seg.visible, COLORS.B, 2)} />
+              ))}
+
+              {/* C:経線(可動) */}
+              {geometry.meridianC.map((seg, i) => (
+                <path key={`mc-${i}`} d={pointsToPath(seg.points)} {...strokeFor(seg.visible, COLORS.C, 2)} />
+              ))}
+            </g>
+
+            {/* 日本のドット(参考) */}
+            <circle cx={geometry.pointJapan.x} cy={geometry.pointJapan.y} r="4.5" fill="#9b3f8f" stroke="#fff" strokeWidth="1.4" />
+            <text
+              x={geometry.pointJapan.x}
+              y={geometry.pointJapan.y - 9}
+              textAnchor="middle"
+              fontSize="10.5"
+              fill="#9b3f8f"
+              style={{ paintOrder: "stroke", stroke: "#fff", strokeWidth: 4 }}
+            >
+              日本
+            </text>
+
+            {/* 極ラベル */}
+            <text x={project(0, 0).x} y={project(0, 0).y - 10} textAnchor="middle" fontSize="12" fontWeight="700">
+              北極
+            </text>
+            <text x={project(180, 0).x} y={project(180, 0).y + 18} textAnchor="middle" fontSize="12" fontWeight="700">
+              南極
+            </text>
+
+            {/* A:基準点(本初子午線×赤道) */}
+            <circle cx={geometry.pointA.x} cy={geometry.pointA.y} r="6" fill={COLORS.A} stroke="#fff" strokeWidth="2" />
+            <text x={geometry.pointA.x} y={geometry.pointA.y - 11} textAnchor="middle" fontSize="14" fontWeight="700" fill={COLORS.A}>
+              A
+            </text>
+
+            {/* P:B×Cの交点(答えの地点) */}
+            <circle cx={geometry.pointP.x} cy={geometry.pointP.y} r="8" fill={COLORS.P} stroke="#fff" strokeWidth="2.2" />
+            <text x={geometry.pointP.x} y={geometry.pointP.y - 13} textAnchor="middle" fontSize="16" fontWeight="700" fill={COLORS.P}>
+              P
+            </text>
+
+            {/* O→F(断面内、Pの真下)・F→P(垂線)の補助線 */}
+            <line
+              x1={geometry.pointO.x}
+              y1={geometry.pointO.y}
+              x2={geometry.pointF.x}
+              y2={geometry.pointF.y}
+              stroke="#8f8d82"
+              strokeWidth="1.2"
+              strokeDasharray="3 3"
+            />
+            <line
+              x1={geometry.pointF.x}
+              y1={geometry.pointF.y}
+              x2={geometry.pointP.x}
+              y2={geometry.pointP.y}
+              stroke="#8f8d82"
+              strokeWidth="1.2"
+              strokeDasharray="3 3"
+            />
+
+            {/* O→P:常に表示する線分OP */}
+            <line
+              x1={geometry.pointO.x}
+              y1={geometry.pointO.y}
+              x2={geometry.pointP.x}
+              y2={geometry.pointP.y}
+              stroke={COLORS.P}
+              strokeWidth="2"
+            />
+
+            {/* 角度の弧(OFとOPのなす角) */}
+            <path d={geometry.arcPath} fill="none" stroke="#b5451f" strokeWidth="1.6" />
+
+            {/* O点 */}
+            <circle cx={geometry.pointO.x} cy={geometry.pointO.y} r="4.5" fill="#fff" stroke="#22262b" strokeWidth="1.6" />
+            <text x={geometry.pointO.x - 10} y={geometry.pointO.y + 4} textAnchor="end" fontSize="13" fontWeight="700" fill="#22262b">
+              O
+            </text>
+
+            {/* F点(Pの真下・断面内) */}
+            <circle cx={geometry.pointF.x} cy={geometry.pointF.y} r="3" fill="#8f8d82" />
+          </svg>
+        </div>
+
+        {/* A点の説明 */}
+        <div
+          style={{
+            marginTop: 16,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: 13,
+            background: "#fff",
+            border: "1px solid #e3e1da",
+            borderRadius: 10,
+            padding: "10px 12px",
+          }}
+        >
+          <span style={{ fontWeight: 700, color: COLORS.A }}>A(本初子午線 × 赤道)</span>
+          <span style={{ color: "#888" }}>東経0°・北緯0° 固定</span>
+        </div>
+
+        {/* B:緯度スライダー */}
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+            <span style={{ fontWeight: 700, color: COLORS.B }}>B(緯線の輪)</span>
+            <span>{toNS(latB)}</span>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              type="range"
+              min={-90}
+              max={90}
+              value={latB}
+              onChange={(e) => setLatB(norm(Number(e.target.value), -90, 90))}
+              style={{ flex: 1, accentColor: COLORS.B, touchAction: "none", height: 32 }}
+            />
+            <input
+              type="number"
+              min={-90}
+              max={90}
+              value={latB}
+              onChange={(e) => setLatB(norm(Number(e.target.value), -90, 90))}
+              style={{ width: 56, fontSize: 13, border: "1px solid #ddd", borderRadius: 6, padding: "4px 6px" }}
+            />
+          </div>
+        </div>
+
+        {/* C:経度スライダー */}
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+            <span style={{ fontWeight: 700, color: COLORS.C }}>C(経線)</span>
+            <span>{toEW(lonC)}</span>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              value={lonC}
+              onChange={(e) => setLonC(norm(Number(e.target.value), -180, 180))}
+              style={{ flex: 1, accentColor: COLORS.C, touchAction: "none", height: 32 }}
+            />
+            <input
+              type="number"
+              min={-180}
+              max={180}
+              value={lonC}
+              onChange={(e) => setLonC(norm(Number(e.target.value), -180, 180))}
+              style={{ width: 56, fontSize: 13, border: "1px solid #ddd", borderRadius: 6, padding: "4px 6px" }}
+            />
+          </div>
+        </div>
+
+        {/* P:答えの読み取り */}
+        <div
+          style={{
+            marginTop: 16,
+            background: "#22262b",
+            color: "#faf9f6",
+            borderRadius: 10,
+            padding: "14px 16px",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 12, color: "#c8c6bd", marginBottom: 4 }}>P点の位置</div>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: 1 }}>
+            {toEW(lonC)}・{toNS(latB)}
+          </div>
+        </div>
+
+        {/* 線分OPと赤道断面のなす角 */}
+        <div
+          style={{
+            marginTop: 10,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: 13,
+            background: "#fff",
+            border: "1px solid #e3e1da",
+            borderRadius: 10,
+            padding: "10px 12px",
+          }}
+        >
+          <span style={{ fontWeight: 700, color: "#b5451f" }}>線分OPと断面(赤道面)のなす角</span>
+          <span style={{ fontSize: 17, fontWeight: 700 }}>{Math.abs(geometry.angleDeg).toFixed(0)}°</span>
+        </div>
+
+        <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={reset}
+            style={{
+              fontSize: 13,
+              background: "#22262b",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 16px",
+              cursor: "pointer",
+            }}
+          >
+            初期状態に戻す
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<GlobeLatLonApp />);
+</script>
+</body>
+</html>
