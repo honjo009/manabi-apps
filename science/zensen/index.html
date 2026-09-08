@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>前線、上から見るか横から見るか</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F7FA;
+    --panel:#FFFFFF;
+    --ink:#1E2A38;
+    --sub:#5B6B7C;
+    --line:#DDE4EA;
+    --isobar:#C3CFDA;
+    --low:#4C3AA6;
+    --warm:#D8472F;
+    --warm-air:#F8D9AE;
+    --warm-air-strong:#F0B96B;
+    --cold:#2760C9;
+    --cold-air:#CFE3F6;
+    --cold-air-strong:#A9CBEA;
+    --cb:#4A5568;
+    --cb-light:#7C8B9C;
+    --ns:#AEBAC6;
+    --ns-light:#D6DEE5;
+    --rain:#2F6FCF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Zen Kaku Gothic New',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:960px;margin:0 auto;padding:28px 20px 60px;}
+
+  header{margin-bottom:22px;}
+  .eyebrow{
+    font-size:13px;letter-spacing:.13em;color:var(--sub);
+    font-weight:700;margin:0 0 6px;text-transform:uppercase;
+  }
+  h1{
+    font-family:'Shippori Mincho',serif;
+    font-weight:700;
+    font-size:clamp(27px,5vw,38px);
+    margin:0 0 10px;
+    letter-spacing:.02em;
+  }
+  .lead{margin:0;color:var(--sub);font-size:16px;line-height:1.75;max-width:60ch;}
+
+  /* Stepper */
+  .stepper{
+    display:flex;gap:6px;margin:22px 0 16px;
+    overflow-x:auto;padding-bottom:2px;
+    scrollbar-width:none;
+  }
+  .stepper::-webkit-scrollbar{display:none;}
+  .step-btn{
+    flex:1 1 0;min-width:118px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:9px 10px;
+    text-align:left;
+    cursor:pointer;
+    font-family:inherit;
+    color:var(--sub);
+    transition:border-color .25s, background .25s, color .25s, transform .15s;
+  }
+  .step-btn:hover{border-color:#B9C4CF;}
+  .step-btn:focus-visible{outline:3px solid var(--low);outline-offset:2px;}
+  .step-btn .num{
+    display:block;font-family:'Shippori Mincho',serif;font-size:13px;
+    color:var(--sub);margin-bottom:3px;
+  }
+  .step-btn .lbl{display:block;font-size:14.5px;font-weight:700;line-height:1.3;}
+  .step-btn[aria-current="true"]{
+    background:var(--ink);border-color:var(--ink);color:#fff;
+  }
+  .step-btn[aria-current="true"] .num,
+  .step-btn[aria-current="true"] .lbl{color:#fff;}
+
+  /* Stage */
+  .stage-wrap{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px 14px 6px;
+    box-shadow:0 1px 3px rgba(30,42,56,.06), 0 8px 24px -12px rgba(30,42,56,.12);
+  }
+  .flip-scene{
+    perspective:1800px;
+    width:100%;
+    aspect-ratio:800/520;
+  }
+  .flip-inner{
+    position:relative;width:100%;height:100%;
+    transform-style:preserve-3d;
+  }
+  .face{
+    position:absolute;inset:0;
+    backface-visibility:hidden;
+    border-radius:10px;
+    overflow:hidden;
+    transform-origin:50% 60%;
+  }
+  .face-map{
+    background:linear-gradient(180deg,#EFF4F9,#E7EFF6);
+    transform:rotateX(0deg);
+  }
+  .face-map.hinge-anim{transition:transform 900ms cubic-bezier(.5,0,.4,1);}
+  .face-cross{
+    background:linear-gradient(180deg,#DCEBFA 0%,#EAF3FB 55%,#F4F7FA 100%);
+    transform:rotateX(102deg);
+  }
+  .face-cross.hinge-anim{transition:transform 900ms cubic-bezier(.5,0,.4,1);}
+  svg{display:block;width:100%;height:100%;}
+
+  .caption{
+    font-size:16px;color:var(--sub);line-height:1.85;
+    padding:14px 6px 10px;min-height:64px;
+  }
+  .caption b{color:var(--ink);font-weight:700;}
+
+  /* Legend */
+  .legend{
+    display:flex;flex-wrap:wrap;gap:14px 22px;
+    margin:14px 2px 0;padding:14px 16px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    font-size:14.5px;color:var(--sub);
+  }
+  .legend-item{display:flex;align-items:center;gap:8px;}
+  .legend-swatch{width:20px;height:14px;flex:none;}
+
+  /* Controls */
+  .controls{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;margin-top:18px;
+  }
+  .nav-btn{
+    font-family:inherit;font-weight:700;font-size:15.5px;
+    background:var(--ink);color:#fff;border:none;border-radius:9px;
+    padding:11px 18px;cursor:pointer;transition:opacity .2s, transform .15s;
+  }
+  .nav-btn:disabled{opacity:.3;cursor:default;}
+  .nav-btn:not(:disabled):active{transform:scale(.97);}
+  .nav-btn:focus-visible{outline:3px solid var(--low);outline-offset:2px;}
+  #advanceBtn{
+    background:#fff;color:var(--ink);border:1px solid var(--line);
+    margin:2px 4px 12px;
+  }
+  .dots{display:flex;gap:7px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--line);transition:background .25s,transform .25s;}
+  .dot.active{background:var(--ink);transform:scale(1.3);}
+
+  @media (max-width:560px){
+    .step-btn{min-width:92px;}
+    .step-btn .lbl{font-size:13px;}
+    .legend{font-size:13px;gap:10px 16px;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .flip-inner{transition:none;}
+    * {animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <p class="eyebrow">中学受験・理科 / 気象</p>
+    <h1>前線、上から見るか横から見るか</h1>
+    <p class="lead">天気図 → 空気の流れ込み → 断面図 → 雲の発生、をひとつのつながりとして見てみよう。</p>
+  </header>
+
+  <nav class="stepper" id="stepper" aria-label="学習ステップ"></nav>
+
+  <div class="stage-wrap">
+    <div class="flip-scene">
+      <div class="flip-inner" id="flipInner">
+        <section class="face face-map" id="faceMap" aria-hidden="false">
+          <svg id="mapSvg" viewBox="0 0 800 520" role="img" aria-label="低気圧と前線を示す天気図"></svg>
+        </section>
+        <section class="face face-cross" id="faceCross" aria-hidden="true">
+          <svg id="crossSvg" viewBox="0 0 800 520" role="img" aria-label="前線の断面図"></svg>
+        </section>
+      </div>
+    </div>
+    <p class="caption" id="caption"></p>
+    <button class="nav-btn" id="advanceBtn" style="display:none;">▶ 前線を進める</button>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="controls">
+    <button class="nav-btn" id="prevBtn">← 戻る</button>
+    <div class="dots" id="dots"></div>
+    <button class="nav-btn" id="nextBtn">次へ →</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs={}, parent=null) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+
+  const mapSvg = document.getElementById('mapSvg');
+  const crossSvg = document.getElementById('crossSvg');
+  const flipInner = document.getElementById('flipInner');
+  const faceMap = document.getElementById('faceMap');
+  const faceCross = document.getElementById('faceCross');
+  const captionEl = document.getElementById('caption');
+  const stepperEl = document.getElementById('stepper');
+  const dotsEl = document.getElementById('dots');
+  const legendEl = document.getElementById('legend');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  const STEPS = [
+    { label:"天気図", sub:"低気圧と前線" },
+    { label:"吸い込み", sub:"空気が渦を巻く" },
+    { label:"断面へ", sub:"横から見てみる" },
+    { label:"寒冷前線", sub:"急な上昇と積乱雲" },
+    { label:"温暖前線", sub:"ゆるやかな上昇と乱層雲" },
+  ];
+
+  const CAPTIONS = [
+    "低気圧の中心（L）から、南東へ<b>温暖前線</b>（赤・半円）、南西へ<b>寒冷前線</b>（青・三角）がのびている。2つの前線にはさまれた地域が<b>暖域</b>。",
+    "低気圧の中心は周りより気圧が低いので、まわりの空気が中心に向かって流れ込む。地球の自転の影響で、まっすぐではなく<b>反時計回り</b>にうずを巻きながら集まる。",
+    "図の A—B の線で天気図を切って、横から見た<b>断面図</b>に切りかえる。左が寒冷前線側、右が温暖前線側。",
+    "寒冷前線では、冷たく重い空気（寒気）が暖かい空気（暖気）の下に<b>もぐりこみ</b>、暖気が急激に押し上げられる。急な上昇気流は<b>積乱雲</b>を作り、せまい範囲に強い雨（にわか雨）や雷を降らせる。",
+    "温暖前線では、暖気が寒気の上を<b>ゆるやかにはい上がる</b>ように上昇する。ゆるやかな上昇気流は<b>乱層雲</b>のような層状の雲を広い範囲に作り、弱い雨が長時間降り続く。",
+  ];
+
+  let step = 0;
+  let rafId = null;
+
+  /* ---------------- Build stepper & dots & legend (static DOM) ---------------- */
+  STEPS.forEach((s,i)=>{
+    const b = document.createElement('button');
+    b.className = 'step-btn';
+    b.innerHTML = `<span class="num">STEP ${i+1}</span><span class="lbl">${s.label}</span>`;
+    b.addEventListener('click', ()=>goTo(i));
+    stepperEl.appendChild(b);
+
+    const d = document.createElement('span');
+    d.className = 'dot';
+    dotsEl.appendChild(d);
+  });
+
+  const legendItems = [
+    ['#D8472F','半円 = 温暖前線'],
+    ['#2760C9','三角 = 寒冷前線'],
+    ['#4C3AA6','L = 低気圧の中心'],
+    ['#4A5568','濃い雲 = 積乱雲(にわか雨)'],
+    ['#AEBAC6','うすい雲 = 乱層雲(長雨)'],
+  ];
+  legendItems.forEach(([color,text])=>{
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<span class="legend-swatch" style="background:${color};border-radius:3px;"></span><span>${text}</span>`;
+    legendEl.appendChild(item);
+  });
+
+  /* ---------------- MAP SVG ---------------- */
+  const CX = 400, CY = 230;
+  (function buildMap(){
+    // isobars
+    const isoG = el('g', {}, mapSvg);
+    [60,105,150,195,240].forEach(r=>{
+      el('ellipse', {cx:CX, cy:CY, rx:r, ry:r*0.72, fill:'none', stroke:'var(--isobar)'.replace('var(--isobar)','#C3CFDA'), 'stroke-width':1.2}, isoG);
+    });
+
+    // warm sector fill — actual wedge between the two front curves
+    el('path', {
+      d:`M${CX},${CY} Q520,255 620,340 L250,430 Q330,320 ${CX},${CY} Z`,
+      fill:'#F8D9AE', opacity:0.55
+    }, mapSvg);
+
+    // cold front line
+    const coldPath = `M${CX},${CY} Q330,320 250,430`;
+    el('path', {d:coldPath, fill:'none', stroke:'#2760C9', 'stroke-width':3.4, 'stroke-linecap':'round'}, mapSvg);
+    // cold front triangles
+    [[342,305,203],[305,355,208],[266,408,213]].forEach(([x,y,rot])=>{
+      el('path', {
+        d:'M-8,-8 L8,0 L-8,8 Z',
+        fill:'#2760C9',
+        transform:`translate(${x},${y}) rotate(${rot})`
+      }, mapSvg);
+    });
+
+    // warm front line
+    const warmPath = `M${CX},${CY} Q520,255 620,340`;
+    el('path', {d:warmPath, fill:'none', stroke:'#D8472F', 'stroke-width':3.4, 'stroke-linecap':'round'}, mapSvg);
+    // warm front semicircles
+    [[493,260,-25],[548,288,-25],[600,324,-25]].forEach(([x,y,rot])=>{
+      el('path', {
+        d:'M-8,0 A8,8 0 0,1 8,0 Z',
+        fill:'#D8472F',
+        transform:`translate(${x},${y}) rotate(${rot})`
+      }, mapSvg);
+    });
+
+    // Low center marker
+    el('circle', {cx:CX, cy:CY, r:5.5, fill:'#4C3AA6'}, mapSvg);
+    const Ltxt = el('text', {x:CX, y:CY-16, 'text-anchor':'middle', fill:'#4C3AA6',
+      'font-family':"'Shippori Mincho',serif", 'font-size':26, 'font-weight':700}, mapSvg);
+    Ltxt.textContent = 'L';
+
+    // cut line A-B (horizontal — actually crosses both fronts)
+    el('path', {d:'M160,310 L720,310', stroke:'#1E2A38', 'stroke-width':1.6, 'stroke-dasharray':'6 5', opacity:0.55}, mapSvg);
+    el('circle', {cx:160, cy:310, r:3.5, fill:'#1E2A38'}, mapSvg);
+    el('circle', {cx:720, cy:310, r:3.5, fill:'#1E2A38'}, mapSvg);
+    const Atxt = el('text', {x:145, y:306, 'text-anchor':'end', 'font-size':15, fill:'#1E2A38', 'font-weight':700}, mapSvg);
+    Atxt.textContent = 'A';
+    const Btxt = el('text', {x:734, y:306, 'text-anchor':'start', 'font-size':15, fill:'#1E2A38', 'font-weight':700}, mapSvg);
+    Btxt.textContent = 'B';
+
+    // animated "cut" line (hidden by default, drawn at step2->3 transition)
+    const cutGroup = el('g', {id:'cutLineGroup', opacity:0}, mapSvg);
+    el('path', {id:'cutLineHalo', d:'M160,310 L720,310', stroke:'#FFFFFF', 'stroke-width':8, fill:'none', 'stroke-linecap':'round'}, cutGroup);
+    el('path', {id:'cutLineAnim', d:'M160,310 L720,310', stroke:'#1E2A38', 'stroke-width':4, fill:'none', 'stroke-linecap':'round'}, cutGroup);
+
+    // labels
+    const labelWarm = el('text', {x:600, y:358, 'font-size':15, fill:'#B7391F', 'font-weight':700}, mapSvg);
+    labelWarm.textContent = '温暖前線';
+    const labelCold = el('text', {x:200, y:400, 'text-anchor':'end', 'font-size':15, fill:'#1E4FA0', 'font-weight':700}, mapSvg);
+    labelCold.textContent = '寒冷前線';
+    const labelSector = el('text', {x:435, y:332, 'text-anchor':'middle', 'font-size':14, fill:'#8A5A22', 'font-weight':700}, mapSvg);
+    labelSector.textContent = '暖域';
+
+    // particle group
+    el('g', {id:'particleGroup'}, mapSvg);
+  })();
+
+  /* ---------------- Particle inflow animation (map, step 2) ---------------- */
+  const pg = mapSvg.querySelector('#particleGroup');
+  const PARTICLE_N = 16;
+  let particles = [];
+  function initParticles(){
+    pg.innerHTML = '';
+    particles = [];
+    for(let i=0;i<PARTICLE_N;i++){
+      const p = {
+        a: Math.random()*Math.PI*2,
+        r: 150 + Math.random()*160,
+      };
+      const c = el('circle', {r:3.4, fill:'#2F6FCF', opacity:0.85}, pg);
+      p.node = c;
+      particles.push(p);
+    }
+  }
+  initParticles();
+
+  function stepParticles(dt){
+    particles.forEach(p=>{
+      const angSpeed = Math.min(0.018, 260/p.r*0.0055);
+      p.a += angSpeed*dt;
+      p.r -= 0.052*dt;
+      if(p.r < 18){
+        p.r = 150 + Math.random()*160;
+        p.a = Math.random()*Math.PI*2;
+      }
+      const x = CX + p.r*Math.cos(p.a);
+      const y = CY - p.r*Math.sin(p.a)*0.72;
+      p.node.setAttribute('cx', x);
+      p.node.setAttribute('cy', y);
+      p.node.setAttribute('opacity', Math.min(0.9, p.r/300 + 0.15));
+    });
+  }
+  let lastT = null;
+  function loop(t){
+    if(lastT==null) lastT = t;
+    const dt = Math.min(32, t-lastT);
+    lastT = t;
+    stepParticles(dt);
+    rafId = requestAnimationFrame(loop);
+  }
+  function startParticles(){
+    if(rafId) return;
+    lastT = null;
+    rafId = requestAnimationFrame(loop);
+  }
+  function stopParticles(){
+    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  /* ---------------- CROSS SECTION SVG ---------------- */
+  // Shared geometry: cold front is steep & short-run (near-vertical, tall),
+  // warm front is a long, shallow ramp (its top point sits off-canvas —
+  // real warm fronts slope for hundreds of km, so it's realistic for the
+  // line to still be climbing once it leaves the frame).
+  const GROUND = 430;
+  const COLD_X = 270;      // matches the A–B line's crossing of the cold front on the map
+  const WARM_X = 480;      // moved left so the warm front's angle reads clearly at ~30°
+  const TOP_Y = 183;       // both fronts are drawn reaching the same height (247px above ground)
+  const COLD_TOP_X = 230, COLD_TOP_Y = TOP_Y;   // short run -> steep (~81°)
+  const WARM_TOP_X = 908, WARM_TOP_Y = TOP_Y;   // long run -> shallow (~30°), top sits just past the frame
+  // point where the warm-front line crosses the right edge of the canvas
+  const WARM_EDGE_Y = GROUND + (800-WARM_X) * (WARM_TOP_Y-GROUND) / (WARM_TOP_X-WARM_X);
+
+  (function buildCross(){
+    function labelBox(x, y, w, h, text, color){
+      const g = el('g', {}, crossSvg);
+      el('rect', {x:x, y:y, width:w, height:h, fill:'#FFFFFF', stroke:color||'#1E2A38', 'stroke-width':1.3, rx:3}, g);
+      const t = el('text', {x:x+w/2, y:y+h/2+5, 'text-anchor':'middle', 'font-size':14.5, 'font-weight':700, fill:color||'#1E2A38'}, g);
+      t.textContent = text;
+      return g;
+    }
+
+    // sky background subtle
+    el('rect', {x:0,y:0,width:800,height:GROUND, fill:'#EAF2FA'}, crossSvg);
+
+    // cold air (left block) — steep boundary, reaching the shared top height
+    el('path', {id:'coldAirFill', d:`M40,${TOP_Y} L${COLD_TOP_X},${TOP_Y} L${COLD_X},${GROUND} L40,${GROUND} Z`, fill:'#CFE3F6'}, crossSvg);
+    // warm air — fills the remaining canvas up to the same shared top height
+    el('path', {id:'warmBaseFill', d:`M${COLD_TOP_X},${TOP_Y} L800,${TOP_Y} L800,${GROUND} L${COLD_X},${GROUND} Z`, fill:'#F8D9AE'}, crossSvg);
+    // pre-frontal cold air — the sliver under the warm-front ramp
+    el('path', {id:'coldSliverFill', d:`M${WARM_X},${GROUND} L800,${WARM_EDGE_Y} L800,${GROUND} Z`, fill:'#CFE3F6'}, crossSvg);
+
+    // front boundary strokes — each lives inside its own translatable
+    // "assembly" group, so a later advance-animation can slide the whole
+    // front (line + cloud + rain + particles) forward as one unit
+    const coldFrontAssembly = el('g', {id:'coldFrontAssembly'}, crossSvg);
+    const warmFrontAssembly = el('g', {id:'warmFrontAssembly'}, crossSvg);
+    el('path', {d:`M${COLD_X},${GROUND} L${COLD_TOP_X},${TOP_Y}`, stroke:'#2760C9', 'stroke-width':3, fill:'none'}, coldFrontAssembly);
+    el('path', {d:`M${WARM_X},${GROUND} L${WARM_TOP_X},${WARM_TOP_Y}`, stroke:'#D8472F', 'stroke-width':3, fill:'none'}, warmFrontAssembly);
+
+    // ground
+    el('line', {x1:30,y1:GROUND,x2:770,y2:GROUND, stroke:'#1E2A38', 'stroke-width':2.4}, crossSvg);
+    const groundTxt = el('text', {x:40, y:GROUND+24, 'font-size':14, fill:'#5B6B7C'}, crossSvg);
+    groundTxt.textContent = '地面';
+
+    // front names, directly under their ground point (matches the A–B crossing)
+    el('circle', {cx:COLD_X, cy:GROUND, r:3.4, fill:'#1E2A38'}, crossSvg);
+    el('circle', {cx:WARM_X, cy:GROUND, r:3.4, fill:'#1E2A38'}, crossSvg);
+    const coldFrontLbl = el('text', {x:COLD_X, y:GROUND+46, 'text-anchor':'middle', 'font-size':16, 'font-weight':700, fill:'#1E4FA0'}, crossSvg);
+    coldFrontLbl.textContent = '寒冷前線';
+    const warmFrontLbl = el('text', {x:WARM_X, y:GROUND+46, 'text-anchor':'middle', 'font-size':16, 'font-weight':700, fill:'#B7391F'}, crossSvg);
+    warmFrontLbl.textContent = '温暖前線';
+
+    // mass labels
+    const coldL = el('text', {x:130, y:250, 'text-anchor':'middle', 'font-size':18, 'font-weight':700, fill:'#1E4FA0'}, crossSvg);
+    coldL.textContent = '寒気';
+    const warmM = el('text', {id:'warmSectorLbl', x:(COLD_X+WARM_X)/2, y:395, 'text-anchor':'middle', 'font-size':18, 'font-weight':700, fill:'#8A5A22'}, crossSvg);
+    warmM.textContent = '暖気(暖域)';
+    const coldR = el('text', {x:700, y:380, 'text-anchor':'middle', 'font-size':18, 'font-weight':700, fill:'#1E4FA0'}, crossSvg);
+    coldR.textContent = '寒気';
+
+    // arrow marker def (used by every arrow below)
+    const defs = el('defs', {}, crossSvg);
+    const marker = el('marker', {id:'arrowHead', markerWidth:8, markerHeight:8, refX:4, refY:4, orient:'auto'}, defs);
+    el('path', {d:'M0,0 L8,4 L0,8 Z', fill:'#1E2A38'}, marker);
+
+    /* ---- cold front group: explanatory arrows + cumulonimbus + rain ---- */
+    const coldGroup = el('g', {class:'cold-cloud', id:'coldCloudGroup'}, coldFrontAssembly);
+    // 前線の動き（進行方向）
+    el('path', {d:'M55,96 L138,96', stroke:'#1E2A38', 'stroke-width':2.2, fill:'none', 'marker-end':'url(#arrowHead)'}, coldGroup);
+    const moveLbl1 = el('text', {x:55, y:80, 'font-size':15, 'font-weight':700, fill:'#1E2A38'}, coldGroup);
+    moveLbl1.textContent = '前線の動き';
+    // 寒気(重い) が地表を押す
+    el('path', {d:'M60,394 L146,394', stroke:'#1E4FA0', 'stroke-width':2.4, fill:'none', 'marker-end':'url(#arrowHead)'}, coldGroup);
+    const coldPush = el('text', {x:60, y:378, 'font-size':15, 'font-weight':700, fill:'#1E4FA0'}, coldGroup);
+    coldPush.textContent = '寒気　重い';
+    // 傾斜が急
+    labelBox(140, 326, 96, 28, '傾斜が急', '#1E2A38');
+    // 暖気(軽い) が急に押し上げられる
+    el('path', {d:`M${COLD_X-16},408 L${COLD_TOP_X+18},272`, stroke:'#1E2A38', 'stroke-width':2.6, fill:'none', 'marker-end':'url(#arrowHead)'}, coldGroup);
+    const warmLift1 = el('text', {x:COLD_X+6, y:330, 'font-size':15, 'font-weight':700, fill:'#1E2A38'}, coldGroup);
+    warmLift1.textContent = '暖気　軽い';
+    // cumulonimbus (stacked puffs, tall) — centred on the cold-front boundary
+    const coldShapeGroup = el('g', {id:'coldShapeGroup'}, coldGroup);
+    const cbColors = ['#7C8B9C','#5C6B7C','#4A5568'];
+    [[230,255,42],[245,215,46],[220,175,38],[250,140,32],[228,110,26]].forEach(([x,y,r],i)=>{
+      el('ellipse', {cx:x, cy:y, rx:r, ry:r*0.72, fill:cbColors[i%3], class:'cb-puff', style:`animation-delay:${i*0.18}s`}, coldShapeGroup);
+    });
+    el('path', {d:'M236,95 L256,60 L272,90 L254,80 Z', fill:'#3B4553', class:'cb-puff', style:'animation-delay:0.05s'}, coldShapeGroup); // anvil-ish top
+    // rain (+ lightning) — its own group so it can appear later than the cloud
+    const coldRainGroup = el('g', {id:'coldRainGroup'}, coldGroup);
+    el('path', {d:'M242,250 L232,278 L242,278 L228,312', stroke:'#F4D35E', 'stroke-width':2.6, fill:'none', 'stroke-linejoin':'round', 'stroke-linecap':'round', class:'lightning-flash'}, coldRainGroup);
+    const rainG = el('g', {class:'rain-cold'}, coldRainGroup);
+    for(let i=0;i<6;i++){
+      el('line', {x1:205+i*14, y1:270, x2:198+i*14, y2:315, stroke:'#2F6FCF', 'stroke-width':2, opacity:0.75, class:'rainline'}, rainG);
+    }
+    // moist-air particles: flow along the ground, then get punched up abruptly
+    el('g', {id:'coldFlowGroup'}, coldGroup);
+
+    /* ---- warm front group: explanatory arrows + nimbostratus + rain ---- */
+    const warmGroup = el('g', {class:'warm-cloud', id:'warmCloudGroup'}, warmFrontAssembly);
+    // 前線の動き（進行方向）
+    el('path', {d:'M660,96 L743,96', stroke:'#1E2A38', 'stroke-width':2.2, fill:'none', 'marker-end':'url(#arrowHead)'}, warmGroup);
+    const moveLbl2 = el('text', {x:655, y:80, 'font-size':15, 'font-weight':700, fill:'#1E2A38'}, warmGroup);
+    moveLbl2.textContent = '前線の動き';
+    // 傾斜が緩やか
+    labelBox(536, 258, 132, 28, '傾斜が緩やか', '#1E2A38');
+    // 寒気(重い) が前線の先で後退する
+    el('path', {d:'M770,412 Q742,398 720,414', stroke:'#1E4FA0', 'stroke-width':2.4, fill:'none', 'marker-end':'url(#arrowHead)'}, warmGroup);
+    const coldRetreat = el('text', {x:692, y:404, 'text-anchor':'end', 'font-size':15, 'font-weight':700, fill:'#1E4FA0'}, warmGroup);
+    coldRetreat.textContent = '寒気　重い';
+    // 暖気(軽い) が寒気の上をゆるやかにはい上がる（境界線に沿って）
+    el('path', {d:`M${WARM_X+12},414 Q650,335 792,240`, stroke:'#1E2A38', 'stroke-width':2.6, fill:'none', 'marker-end':'url(#arrowHead)'}, warmGroup);
+    const warmLift2 = el('text', {x:590, y:330, 'font-size':15, 'font-weight':700, fill:'#1E2A38'}, warmGroup);
+    warmLift2.textContent = '暖気　軽い';
+    // layered clouds — a thin, wide sheet floating well ABOVE the boundary
+    // line (never touching it), spreading out as it goes, unlike the tall
+    // dense cumulonimbus on the cold-front side
+    const warmShapeGroup = el('g', {id:'warmShapeGroup'}, warmGroup);
+    const nsSpecs = [
+      [505,218,92,28,'#ACBAC7'],
+      [575,193,116,26,'#B7C3CE'],
+      [650,172,122,24,'#C2CCD5'],
+      [722,156,102,20,'#CDD5DC'],
+      [782,145,74,16,'#D8DFE4'],
+    ];
+    nsSpecs.forEach(([x,y,rx,ry,c],i)=>{
+      el('ellipse', {cx:x, cy:y, rx:rx, ry:ry, fill:c, opacity:0.85, class:'ns-layer', style:`animation-delay:${i*0.5}s`}, warmShapeGroup);
+    });
+    // rain — falls from the cloud sheet down toward the front, well clear
+    // of the boundary stroke itself; lighter and thinner than the cold rain
+    const warmRainGroup = el('g', {id:'warmRainGroup'}, warmGroup);
+    const rainG2 = el('g', {class:'rain-warm'}, warmRainGroup);
+    for(let i=0;i<12;i++){
+      el('line', {x1:466+i*16, y1:252, x2:460+i*16, y2:412, stroke:'#5C8FD8', 'stroke-width':1.6, opacity:0.5, class:'rainline'}, rainG2);
+    }
+    // moist-air particles: flow along the ground, then rise slowly & broadly
+    el('g', {id:'warmFlowGroup'}, warmGroup);
+  })();
+
+  const coldCloudGroup = document.getElementById('coldCloudGroup');
+  const warmCloudGroup = document.getElementById('warmCloudGroup');
+  const coldFlowGroup = document.getElementById('coldFlowGroup');
+  const warmFlowGroup = document.getElementById('warmFlowGroup');
+  const coldShapeGroup = document.getElementById('coldShapeGroup');
+  const coldRainGroup = document.getElementById('coldRainGroup');
+  const warmShapeGroup = document.getElementById('warmShapeGroup');
+  const warmRainGroup = document.getElementById('warmRainGroup');
+  const coldFrontAssembly = document.getElementById('coldFrontAssembly');
+  const warmFrontAssembly = document.getElementById('warmFrontAssembly');
+  const warmSectorLbl = document.getElementById('warmSectorLbl');
+  const coldAirFill = document.getElementById('coldAirFill');
+  const warmBaseFill = document.getElementById('warmBaseFill');
+  const coldSliverFill = document.getElementById('coldSliverFill');
+  [coldShapeGroup, coldRainGroup, warmShapeGroup, warmRainGroup].forEach(g=>{
+    g.style.opacity = '0';
+  });
+
+  /* ---------------- cloud / rain animation styles ---------------- */
+  const rainStyleTag = document.createElement('style');
+  rainStyleTag.textContent = `
+    .rainline{ animation:fall 0.9s linear infinite; }
+    .rain-cold .rainline{ animation-duration:0.55s; }   /* sudden, heavy */
+    .rain-warm .rainline{ animation-duration:1.3s; opacity:0.72; } /* long, but clearly visible */
+    @keyframes fall{
+      0%{ transform:translateY(-6px); opacity:0; }
+      15%{ opacity:.8; }
+      100%{ transform:translateY(10px); opacity:0; }
+    }
+    .cold-cloud, .warm-cloud{ transition:opacity .7s ease; }
+
+    /* cold front: cloud punches upward and swells quickly */
+    .cb-puff{
+      transform-box:fill-box; transform-origin:50% 100%;
+      animation:cbPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes cbPulse{
+      0%,100%{ transform:scale(1) translateY(0); }
+      45%{ transform:scale(1.07) translateY(-3px); }
+    }
+    .lightning-flash{ animation:flash 2.6s ease-in-out infinite; }
+    @keyframes flash{
+      0%,88%,100%{ opacity:0; }
+      90%,94%{ opacity:1; }
+      92%{ opacity:.3; }
+    }
+
+    /* warm front: cloud sheet drifts and spreads slowly/gently */
+    .ns-layer{
+      transform-box:fill-box; transform-origin:50% 50%;
+      animation:nsDrift 6.5s ease-in-out infinite;
+    }
+    @keyframes nsDrift{
+      0%,100%{ transform:translateX(0) scaleX(1); }
+      50%{ transform:translateX(9px) scaleX(1.035); }
+    }
+  `;
+  document.head.appendChild(rainStyleTag);
+
+  /* ---------------- moist-air flow particles (steps 4 & 5) ---------------
+     Cold front: air rushes along the ground then is punched straight up —
+     fast, short, abrupt.
+     Warm front: air drifts along the ground then rises gradually along the
+     shallow slope, spreading out — slow, long, gentle.                    */
+  function makeFlowSystem(opts){
+    const group = opts.group;
+    const n = opts.n;
+    let items = [];
+    let raf = null, last = null;
+    function spawn(){
+      const p = { phase:'approach', t:0 };
+      opts.reset(p);
+      const node = el('circle', {r:opts.r, fill:opts.color, opacity:0, stroke:'#FFFFFF', 'stroke-width':1.4, 'stroke-opacity':0.85}, group);
+      p.node = node;
+      return p;
+    }
+    function init(){
+      group.innerHTML = '';
+      items = [];
+      for(let i=0;i<n;i++){
+        const p = spawn();
+        p.t = Math.random(); // desync so they don't all move in lockstep
+        items.push(p);
+      }
+    }
+    init();
+    function step(dt){
+      items.forEach(p=>{ opts.update(p, dt); });
+    }
+    function loop(ts){
+      if(last==null) last = ts;
+      const dt = Math.min(32, ts-last);
+      last = ts;
+      step(dt);
+      raf = requestAnimationFrame(loop);
+    }
+    function start(){ if(raf) return; last=null; raf=requestAnimationFrame(loop); }
+    function stop(){ if(raf){ cancelAnimationFrame(raf); raf=null; } }
+    return { start, stop };
+  }
+
+  function easeOutQuad(t){ return 1-(1-t)*(1-t); }
+  function easeInOutSine(t){ return -(Math.cos(Math.PI*t)-1)/2; }
+
+  const coldFlowCfg = {
+    // Cold air: flows in along the ground and STAYS low, undercutting the
+    // warm air — it never rises. (Fixes the earlier version, which
+    // incorrectly showed this same blue stream shooting upward.)
+    group: coldFlowGroup, n: 6, r: 6.5, color:'#3E6FD8',
+    reset(p){
+      p.x = 46 + Math.random()*36;
+      p.y = GROUND - 8 - Math.random()*5;
+    },
+    update(p, dt){
+      p.x += dt*0.05; // slow, steady approach along the ground
+      let op = 0.9;
+      if(p.x > COLD_X - 30){
+        op = Math.max(0, 0.9 * (1 - (p.x-(COLD_X-30))/40)); // fade out as it undercuts
+      }
+      p.node.setAttribute('opacity', op);
+      p.node.setAttribute('cx', p.x);
+      p.node.setAttribute('cy', p.y);
+      if(p.x >= COLD_X + 10){ coldFlowCfg.reset(p); }
+    }
+  };
+  const coldFlow = makeFlowSystem(coldFlowCfg);
+
+  const coldLiftCfg = {
+    // Warm air already sitting near the front gets forced sharply upward as
+    // the cold front arrives from behind — this is the stream that actually
+    // rises into the cumulonimbus, so it's colored like moist warm air, not
+    // like the cold air.
+    group: coldFlowGroup, n: 6, r: 6.5, color:'#E0913A',
+    reset(p){
+      p.x0 = COLD_X + 6 + Math.random()*54;
+      p.y0 = GROUND - 10 - Math.random()*8;
+      p.t = Math.random()*0.15;
+    },
+    update(p, dt){
+      p.t += dt*0.0009; // quick, forceful lift
+      const e = easeOutQuad(Math.min(1, p.t));
+      p.x = p.x0 + (COLD_TOP_X - p.x0)*e*0.92 - 5*Math.sin(e*Math.PI);
+      p.y = p.y0 + (COLD_TOP_Y - p.y0)*e;
+      p.node.setAttribute('opacity', Math.max(0, 0.95*(1-e*1.05)));
+      p.node.setAttribute('cx', p.x);
+      p.node.setAttribute('cy', p.y);
+      if(p.t >= 1){ coldLiftCfg.reset(p); }
+    }
+  };
+  const coldLift = makeFlowSystem(coldLiftCfg);
+
+  const warmFlowCfg = {
+    group: warmFlowGroup, n: 7, r: 9.5, color:'#E0913A',
+    reset(p){
+      p.x = COLD_X + 30 + Math.random()*(WARM_X-COLD_X-70);
+      p.y = GROUND - 8 - Math.random()*6;
+      p.phase = 'approach';
+      p.lane = 0.55 + Math.random()*0.4; // how far up the shallow slope this particle rises
+    },
+    update(p, dt){
+      if(p.phase === 'approach'){
+        p.x += dt*0.045; // slow drift along the ground
+        p.node.setAttribute('opacity', 0.72);
+        if(p.x >= WARM_X - 10){ p.phase='ascend'; p.t = 0; }
+      } else {
+        p.t += dt*0.00042; // slow, gradual, broad ascent
+        const e = easeInOutSine(Math.min(1,p.t));
+        const reach = p.lane;
+        p.x = WARM_X + (WARM_TOP_X-WARM_X)*e*reach;
+        p.y = GROUND + (WARM_TOP_Y-GROUND)*e*reach;
+        p.node.setAttribute('opacity', Math.max(0, 0.78*(1-e*0.9)));
+        if(p.t >= 1){ warmFlowCfg.reset(p); }
+      }
+      p.node.setAttribute('cx', p.x);
+      p.node.setAttribute('cy', p.y);
+    }
+  };
+  const warmFlow = makeFlowSystem(warmFlowCfg);
+
+  /* ---------------- state application ---------------- */
+  let prevStepForSync = -1;
+  let coldTimers = [];
+  let warmTimers = [];
+  function clearTimers(arr){ arr.forEach(id=>clearTimeout(id)); arr.length = 0; }
+
+  /* ---- Advance animation: slides a front's line + cloud + rain + particles
+     forward (translateX) when the "前線を進める" button is pressed ---- */
+  const advanceBtn = document.getElementById('advanceBtn');
+  const ADVANCE_SHIFT = 150; // px — kept modest so each front stays clear of the other's fixed position
+  let advancing = false, advanceRaf = null, advancingWhich = null;
+
+  function resetColdAdvance(){
+    if(advancingWhich === 'cold'){ advancing = false; advancingWhich = null; if(advanceRaf){ cancelAnimationFrame(advanceRaf); advanceRaf = null; } advanceBtn.disabled = false; }
+    coldFrontAssembly.style.transform = 'translateX(0px)';
+    warmSectorLbl.style.transform = 'translateX(0px)';
+    coldAirFill.setAttribute('d', `M40,${TOP_Y} L${COLD_TOP_X},${TOP_Y} L${COLD_X},${GROUND} L40,${GROUND} Z`);
+    warmBaseFill.setAttribute('d', `M${COLD_TOP_X},${TOP_Y} L800,${TOP_Y} L800,${GROUND} L${COLD_X},${GROUND} Z`);
+  }
+  function resetWarmAdvance(){
+    if(advancingWhich === 'warm'){ advancing = false; advancingWhich = null; if(advanceRaf){ cancelAnimationFrame(advanceRaf); advanceRaf = null; } advanceBtn.disabled = false; }
+    warmFrontAssembly.style.transform = 'translateX(0px)';
+    warmSectorLbl.style.transform = 'translateX(0px)';
+    coldSliverFill.setAttribute('d', `M${WARM_X},${GROUND} L800,${WARM_EDGE_Y} L800,${GROUND} Z`);
+  }
+
+  // slope of the warm-front line — constant, since both its ends shift by
+  // the same px as it advances
+  const WARM_SLOPE = (WARM_TOP_Y-GROUND) / (WARM_TOP_X-WARM_X);
+
+  function playAdvance(){
+    if(advancing) return;
+    const isCold = step === 3;
+    const group = isCold ? coldFrontAssembly : warmFrontAssembly;
+    const duration = isCold ? 9000 : 18000; // warm advances at half the speed
+    advancing = true;
+    advancingWhich = isCold ? 'cold' : 'warm';
+    advanceBtn.disabled = true;
+    const start = performance.now();
+    function frame(ts){
+      const t = Math.min(1, (ts-start)/duration);
+      const px = t*ADVANCE_SHIFT;
+      group.style.transform = `translateX(${px}px)`;
+      warmSectorLbl.style.transform = `translateX(${px}px)`; // 暖域は前線と一緒に進む
+
+      if(isCold){
+        // cold air grows to the right, warm air's fill shrinks to match —
+        // no gap, no overlap, the two stay seamlessly adjacent
+        coldAirFill.setAttribute('d', `M40,${TOP_Y} L${COLD_TOP_X+px},${TOP_Y} L${COLD_X+px},${GROUND} L40,${GROUND} Z`);
+        warmBaseFill.setAttribute('d', `M${COLD_TOP_X+px},${TOP_Y} L800,${TOP_Y} L800,${GROUND} L${COLD_X+px},${GROUND} Z`);
+      } else {
+        // the pre-frontal cold sliver shrinks from the left as the warm
+        // front eats into it
+        const edgeY = GROUND + (800-(WARM_X+px)) * WARM_SLOPE;
+        coldSliverFill.setAttribute('d', `M${WARM_X+px},${GROUND} L800,${edgeY} L800,${GROUND} Z`);
+      }
+
+      if(t < 1){
+        advanceRaf = requestAnimationFrame(frame);
+      } else {
+        advancing = false;
+        advancingWhich = null;
+        advanceBtn.disabled = false;
+      }
+    }
+    advanceRaf = requestAnimationFrame(frame);
+  }
+  advanceBtn.addEventListener('click', playAdvance);
+
+  /* ---- Cold front: ①何もない → ②粒が流れ・上昇 → ③雨雲が発生 → ④雨が激しく降る ---- */
+  function startColdSequence(){
+    clearTimers(coldTimers);
+    coldFlow.stop();
+    coldLift.stop();
+    resetColdAdvance();
+    [coldShapeGroup, coldRainGroup].forEach(g=>{ g.style.transition='none'; g.style.opacity='0'; });
+    void coldShapeGroup.getBoundingClientRect();
+    coldShapeGroup.style.transition = 'opacity 0.8s ease';
+    coldRainGroup.style.transition = 'opacity 0.5s ease';
+
+    // ① 何もない状態（そのまま少し待つ）
+    coldTimers.push(setTimeout(()=>{
+      // ② 空気の粒が流れてきて、前線の先端で上昇し始める
+      if(step===3){ coldFlow.start(); coldLift.start(); }
+    }, 500));
+
+    coldTimers.push(setTimeout(()=>{
+      // ③ ここで初めて雨雲が発生する（粒は引き続き流れている）
+      if(step===3) coldShapeGroup.style.opacity = '1';
+    }, 2900));
+
+    coldTimers.push(setTimeout(()=>{
+      // ④ 雨が激しく降り出す
+      if(step===3) coldRainGroup.style.opacity = '1';
+    }, 3950));
+  }
+  function stopColdSequence(){
+    clearTimers(coldTimers);
+    coldFlow.stop();
+    coldLift.stop();
+    resetColdAdvance();
+    coldShapeGroup.style.opacity = '0';
+    coldRainGroup.style.opacity = '0';
+  }
+
+  /* ---- Warm front: 同じ4フェーズを、ゆっくり・広がるように ---- */
+  function startWarmSequence(){
+    clearTimers(warmTimers);
+    warmFlow.stop();
+    resetWarmAdvance();
+    [warmShapeGroup, warmRainGroup].forEach(g=>{ g.style.transition='none'; g.style.opacity='0'; });
+    void warmShapeGroup.getBoundingClientRect();
+    warmShapeGroup.style.transition = 'opacity 1s ease';
+    warmRainGroup.style.transition = 'opacity 0.9s ease';
+
+    // ① 何もない状態
+    warmTimers.push(setTimeout(()=>{
+      // ② 空気の粒が地表をゆっくり流れ、なだらかな斜面を広がりながら上昇
+      if(step===4) warmFlow.start();
+    }, 650));
+
+    warmTimers.push(setTimeout(()=>{
+      // ③ 乱層雲が発生する
+      if(step===4) warmShapeGroup.style.opacity = '1';
+    }, 4100));
+
+    warmTimers.push(setTimeout(()=>{
+      // ④ 弱い雨が降り続く
+      if(step===4) warmRainGroup.style.opacity = '1';
+    }, 5450));
+  }
+  function stopWarmSequence(){
+    clearTimers(warmTimers);
+    warmFlow.stop();
+    resetWarmAdvance();
+    warmShapeGroup.style.opacity = '0';
+    warmRainGroup.style.opacity = '0';
+  }
+
+  function syncUI(){
+    // stepper buttons
+    Array.from(stepperEl.children).forEach((b,i)=>{
+      b.setAttribute('aria-current', i===step ? 'true':'false');
+    });
+    Array.from(dotsEl.children).forEach((d,i)=>{
+      d.classList.toggle('active', i===step);
+    });
+
+    // ---- cold front sequence ----
+    if(step === 3){
+      coldCloudGroup.style.opacity = '1';
+      if(prevStepForSync !== 3) startColdSequence();
+    } else if(step >= 4){
+      // already played out — keep it, but don't let it compete with the warm front
+      coldCloudGroup.style.opacity = '0.16';
+      coldFlow.stop();
+      coldLift.stop();
+    } else {
+      coldCloudGroup.style.opacity = '0';
+      stopColdSequence();
+    }
+
+    // ---- warm front sequence ----
+    if(step === 4){
+      warmCloudGroup.style.opacity = '1';
+      if(prevStepForSync !== 4) startWarmSequence();
+    } else {
+      warmCloudGroup.style.opacity = '0';
+      stopWarmSequence();
+    }
+
+    // advance button — only meaningful while looking at the relevant front
+    if(step === 3 || step === 4){
+      advanceBtn.style.display = '';
+      advanceBtn.textContent = step===3 ? '▶ 寒冷前線を進める' : '▶ 温暖前線を進める';
+    } else {
+      advanceBtn.style.display = 'none';
+    }
+
+    // particles
+    if(step === 1) startParticles(); else stopParticles();
+
+    prevStepForSync = step;
+
+    // caption
+    captionEl.innerHTML = CAPTIONS[step];
+    // nav buttons
+    prevBtn.disabled = step===0;
+    nextBtn.disabled = step===STEPS.length-1;
+  }
+
+  // Instantly snap both faces to their resting angle for the given step,
+  // with no transition — used on load and for jumps that don't cross the
+  // map<->cross-section boundary.
+  function snapFaces(){
+    faceMap.classList.remove('hinge-anim');
+    faceCross.classList.remove('hinge-anim');
+    faceMap.style.transform = step >= 2 ? 'rotateX(-102deg)' : 'rotateX(0deg)';
+    faceCross.style.transform = step >= 2 ? 'rotateX(0deg)' : 'rotateX(102deg)';
+  }
+
+  function applyStep(){
+    snapFaces();
+    syncUI();
+  }
+
+  /* ---------------- Cube-corner transition (map face <-> cross-section face)
+     Both faces share one hinge line (the A—B cut, transform-origin 50% 60%).
+     Think of a die: face "1" (map) is on top, face "2" (cross-section) is on
+     the front, joined at one edge. Rotating ~100° about that shared edge
+     tips the top face down out of view while the front face swings up into
+     view — never two flat faces spinning in place.                        */
+  let isAnimating = false;
+
+  function playHinge(direction, onDone){ // direction: 'toCross' | 'toMap'
+    isAnimating = true;
+    faceMap.classList.add('hinge-anim');
+    faceCross.classList.add('hinge-anim');
+    if(direction === 'toCross'){
+      faceMap.style.transform = 'rotateX(-102deg)';
+      faceCross.style.transform = 'rotateX(0deg)';
+    } else {
+      faceMap.style.transform = 'rotateX(0deg)';
+      faceCross.style.transform = 'rotateX(102deg)';
+    }
+    setTimeout(()=>{
+      isAnimating = false;
+      if(onDone) onDone();
+    }, 920);
+  }
+
+  function playCutTransition(onDone){
+    const cutLine = document.getElementById('cutLineAnim');
+    const cutHalo = document.getElementById('cutLineHalo');
+    const cutGroup = document.getElementById('cutLineGroup');
+    const len = cutLine.getTotalLength();
+    [cutLine, cutHalo].forEach(p=>{
+      p.style.transition = 'none';
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+    });
+    cutGroup.style.transition = 'none';
+    cutGroup.style.opacity = '1';
+    void cutGroup.getBoundingClientRect();
+
+    // Phase 1 — draw the line across both fronts
+    [cutLine, cutHalo].forEach(p=>{
+      p.style.transition = 'stroke-dashoffset 420ms ease-out';
+      p.style.strokeDashoffset = '0';
+    });
+
+    // Phase 2 — the die tips from top face to front face along that line
+    setTimeout(()=>{
+      playHinge('toCross', ()=>{
+        cutGroup.style.transition = 'none';
+        cutGroup.style.opacity = '0';
+        if(onDone) onDone();
+      });
+    }, 380);
+  }
+
+  function goTo(i){
+    if(isAnimating) return;
+    const newStep = Math.max(0, Math.min(STEPS.length-1, i));
+    if(newStep === step) return;
+    const oldStep = step;
+    const forwardCut = oldStep < 2 && newStep >= 2;
+    const backwardCut = oldStep >= 2 && newStep < 2;
+
+    if(forwardCut){
+      stopParticles();
+      playCutTransition(()=>{
+        step = newStep;
+        syncUI();
+      });
+    } else if(backwardCut){
+      step = newStep;
+      playHinge('toMap', ()=>{ syncUI(); });
+    } else {
+      step = newStep;
+      syncUI();
+    }
+  }
+
+  prevBtn.addEventListener('click', ()=>goTo(step-1));
+  nextBtn.addEventListener('click', ()=>goTo(step+1));
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowRight') goTo(step+1);
+    if(e.key==='ArrowLeft') goTo(step-1);
+  });
+
+  applyStep();
+})();
+</script>
+</body>
+</html>
