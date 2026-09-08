@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>長針と短針の旅人算 | 中学受験・時計算ラボ</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body style="margin:0;">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useMemo, useState } = React;
+
+/* ============ ユーティリティ ============ */
+
+function polar(cx, cy, r, deg) {
+  const rad = (deg * Math.PI) / 180;
+  return { x: cx + r * Math.sin(rad), y: cy - r * Math.cos(rad) };
+}
+
+function arcInfo(a, b) {
+  const lo = Math.min(a, b);
+  const hi = Math.max(a, b);
+  let sweep = hi - lo;
+  let start = lo;
+  if (sweep > 180) {
+    start = hi;
+    sweep = 360 - sweep;
+  }
+  return { start, sweep };
+}
+
+function mixed11(whole, num) {
+  if (num === 0) return `${whole}`;
+  return `${whole} ${num}/11`;
+}
+
+/* ============ 時計の絵 ============ */
+
+function ClockFace({ shortDeg, longDeg, accentA = "#3B6E71", accentB = "#BC4B3C", size = 176, angleLabel, rawClockwise = false }) {
+  const cx = 100, cy = 100, r = 88;
+  const { start, sweep } = rawClockwise
+    ? { start: longDeg, sweep: ((shortDeg - longDeg) % 360 + 360) % 360 }
+    : arcInfo(shortDeg, longDeg);
+  const arcR = 46;
+  const p1 = polar(cx, cy, arcR, start);
+  const p2 = polar(cx, cy, arcR, start + sweep);
+  const largeArc = sweep > 180 ? 1 : 0;
+  const labelPos = polar(cx, cy, arcR + 14, start + sweep / 2);
+
+  const ticks = [];
+  for (let i = 0; i < 60; i++) {
+    const deg = i * 6;
+    const major = i % 5 === 0;
+    const p1t = polar(cx, cy, r, deg);
+    const p2t = polar(cx, cy, major ? r - 10 : r - 5, deg);
+    ticks.push(
+      <line
+        key={i}
+        x1={p1t.x} y1={p1t.y} x2={p2t.x} y2={p2t.y}
+        stroke="#3A3A32"
+        strokeWidth={major ? 2 : 1}
+        opacity={major ? 0.75 : 0.35}
+      />
+    );
+  }
+  const numerals = [];
+  for (let n = 1; n <= 12; n++) {
+    const p = polar(cx, cy, r - 22, n * 30);
+    numerals.push(
+      <text
+        key={n}
+        x={p.x} y={p.y + 5}
+        fontSize="12"
+        textAnchor="middle"
+        fill="#3A3A32"
+        fontFamily="'Shippori Mincho', serif"
+        opacity={0.8}
+      >
+        {n}
+      </text>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 200 200" width={size} height={size}>
+      <circle cx={cx} cy={cy} r={r + 6} fill="#FBF7EC" stroke="#D8CFB8" strokeWidth="2" />
+      {ticks}
+      {numerals}
+      <path
+        d={`M ${cx} ${cy} L ${p1.x} ${p1.y} A ${arcR} ${arcR} 0 ${largeArc} 1 ${p2.x} ${p2.y} Z`}
+        fill="#BC4B3C"
+        opacity="0.15"
+      />
+      <g style={{ transform: `rotate(${shortDeg}deg)`, transformOrigin: "100px 100px", transition: "transform 0.6s ease" }}>
+        <line x1={cx} y1={cy} x2={cx} y2={cy - 46} stroke={accentA} strokeWidth="5" strokeLinecap="round" />
+      </g>
+      <g style={{ transform: `rotate(${longDeg}deg)`, transformOrigin: "100px 100px", transition: "transform 0.6s ease" }}>
+        <line x1={cx} y1={cy} x2={cx} y2={cy - 74} stroke={accentB} strokeWidth="3.5" strokeLinecap="round" />
+      </g>
+      <circle cx={cx} cy={cy} r="4" fill="#2A2A24" />
+      {angleLabel && (
+        <text
+          x={labelPos.x} y={labelPos.y + 4}
+          fontSize="13"
+          fontWeight="700"
+          textAnchor="middle"
+          fill="#9C3A2C"
+          fontFamily="'Shippori Mincho', serif"
+        >
+          {angleLabel}
+        </text>
+      )}
+    </svg>
+  );
+}
+
+/* ============ ステップカード ============ */
+
+function StepCard({ n, title, children, muted }) {
+  return (
+    <div style={{
+      display: "flex", gap: "12px",
+      padding: "14px 16px",
+      background: muted ? "#F1ECE0" : "#FFFDF7",
+      border: `1px solid ${muted ? "#DCD3BE" : "#E4DCC7"}`,
+      borderRadius: "10px",
+      opacity: muted ? 0.75 : 1,
+    }}>
+      <div style={{
+        flexShrink: 0, width: "28px", height: "28px", borderRadius: "50%",
+        background: muted ? "#BEB49C" : "#2C4A52", color: "#FBF7EC",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Shippori Mincho', serif", fontSize: "15px", fontWeight: 700,
+      }}>
+        {n}
+      </div>
+      <div style={{ fontSize: "14.5px", lineHeight: 1.75, color: "#2A2A24" }}>
+        <div style={{ fontWeight: 700, marginBottom: "3px", fontFamily: "'Shippori Mincho', serif" }}>{title}</div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const Num = ({ children }) => (
+  <b style={{ color: "#9C3A2C", fontFamily: "'Shippori Mincho', serif" }}>{children}</b>
+);
+
+/* ============ 「時刻をもとめる」モード ============ */
+
+function computeAllTimeSolutions(h, target) {
+  const gap0 = 30 * h;
+  const startActual = gap0 <= 180 ? gap0 : 360 - gap0;
+
+  const raw = [
+    { type: "a", diff: gap0 - target },
+    { type: "b", diff: gap0 + target },
+    { type: "c", diff: gap0 + target - 360 },
+    { type: "d", diff: gap0 - target + 360 },
+  ];
+
+  const solutions = [];
+  for (const { type, diff } of raw) {
+    if (diff < 0) continue;
+    const totalNum = diff * 2;
+    const wholeMin = Math.floor(totalNum / 11);
+    if (wholeMin >= 60) continue;
+    const fracMinNum = totalNum - wholeMin * 11;
+    const secTotalNum = fracMinNum * 60;
+    const wholeSec = Math.floor(secTotalNum / 11);
+    const fracSecNum = secTotalNum - wholeSec * 11;
+    const mDecimal = wholeMin + fracMinNum / 11;
+    solutions.push({ type, diff, wholeMin, fracMinNum, wholeSec, fracSecNum, mDecimal, gap0, startActual });
+  }
+  const seen = new Set();
+  const dedup = [];
+  for (const s of solutions) {
+    const key = `${s.wholeMin}-${s.fracMinNum}`;
+    if (!seen.has(key)) { seen.add(key); dedup.push(s); }
+  }
+  dedup.sort((a, b) => a.mDecimal - b.mDecimal);
+
+  const checklist = [
+    {
+      type: "a",
+      condText: "30×H ≧ 目標角度",
+      calcText: `30×${h}＝${gap0} ${gap0 >= target ? "≧" : "＜"} ${target}`,
+      valid: gap0 >= target,
+    },
+    {
+      type: "b",
+      condText: "30×H ＋ 目標角度 ＜ 330",
+      calcText: `${gap0}＋${target}＝${gap0 + target} ${gap0 + target < 330 ? "＜" : "≧"} 330`,
+      valid: gap0 + target < 330,
+    },
+    {
+      type: "c",
+      condText: "30×H ＋ 目標角度 ＞ 360",
+      calcText: `${gap0}＋${target}＝${gap0 + target} ${gap0 + target > 360 ? "＞" : "≦"} 360`,
+      valid: gap0 + target > 360,
+    },
+    {
+      type: "d",
+      condText: "目標角度 ＞ 30×H ＋ 30",
+      calcText: `${target} ${target > gap0 + 30 ? "＞" : "≦"} ${gap0}＋30＝${gap0 + 30}`,
+      valid: target > gap0 + 30,
+    },
+  ];
+
+  return { gap0, startActual, list: dedup, checklist };
+}
+
+function FindTimePanel() {
+  const [h, setH] = useState(3);
+  const [target, setTarget] = useState(30);
+
+  const { gap0, startActual, list, checklist } = useMemo(() => computeAllTimeSolutions(h, target), [h, target]);
+  const hLabel = h === 0 ? 12 : h;
+  const hNextLabel = h === 11 ? 12 : h + 1;
+
+  return (
+    <div>
+      <div className="controlRow">
+        <span>
+          <select value={h} onChange={(e) => setH(Number(e.target.value))}>
+            {Array.from({ length: 12 }, (_, i) => i).map((v) => (
+              <option key={v} value={v}>{v === 0 ? 12 : v}</option>
+            ))}
+          </select>
+          時と{hNextLabel}時の間で、長針と短針のなす角が
+        </span>
+        <input
+          type="number" min="0" max="180" value={target}
+          onChange={(e) => setTarget(Math.max(0, Math.min(180, Number(e.target.value))))}
+          style={{ width: "64px" }}
+        />
+        <span>度になるのは{hLabel}時何分何秒?</span>
+      </div>
+
+      <div className="block" style={{ marginBottom: "18px" }}>
+        <StepCard n="①" title="長針と短針の速さの差">
+          長針は1分間に<Num>6度</Num>、短針は1分間に<Num>0.5度</Num>動くので、差は1分間に <Num>6−0.5＝5.5度</Num> 縮まります。
+        </StepCard>
+        <div style={{ height: "8px" }} />
+        <StepCard n="②" title="スタート時点の角度">
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}>
+            <ClockFace shortDeg={gap0} longDeg={0} angleLabel={`${gap0}度`} rawClockwise size={140} />
+            <div>
+              {hLabel}時ちょうどのとき、長針(12の位置)から短針({hLabel}の位置)までを時計回りにはかると <Num>30×{h}＝{gap0}度</Num> です。
+            </div>
+          </div>
+        </StepCard>
+      </div>
+
+      {list.length === 0 && (
+        <div className="block">この{hLabel}時台には、なす角が{target}度になる瞬間はありません。</div>
+      )}
+
+      <div className="resultGrid">
+        {list.map((sol, i) => (
+          <SolutionBlock key={i} index={i + 1} h={h} hLabel={hLabel} target={target} sol={sol} />
+        ))}
+      </div>
+
+      <div className="block" style={{ marginTop: "18px", borderColor: "#D8CFB8" }}>
+        <div style={{ fontFamily: "'Shippori Mincho', serif", fontWeight: 700, fontSize: "14.5px", marginBottom: "8px" }}>
+          「答えが複数ある場合はすべて答えなさい」への対応
+        </div>
+        <div style={{ fontSize: "14px", lineHeight: 1.8, color: "#2A2A24", marginBottom: "10px" }}>
+          時計算では、1つの時間帯の中で同じ角度になる瞬間が複数回訪れることがあります。
+          図を描かなくても、次の4つの条件式に数字を当てはめるだけで、どのパターンが存在するかを判定できます。
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px" }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid #D8CFB8" }}>
+              <th style={{ textAlign: "left", padding: "4px 6px" }}>パターン</th>
+              <th style={{ textAlign: "left", padding: "4px 6px" }}>存在する条件</th>
+              <th style={{ textAlign: "left", padding: "4px 6px" }}>今回の数字</th>
+              <th style={{ textAlign: "center", padding: "4px 6px" }}>判定</th>
+            </tr>
+          </thead>
+          <tbody>
+            {checklist.map((c) => (
+              <tr key={c.type} style={{ borderBottom: "1px solid #ECE4D0", opacity: c.valid ? 1 : 0.55 }}>
+                <td style={{ padding: "5px 6px" }}>{TYPE_META[c.type].label}</td>
+                <td style={{ padding: "5px 6px" }}>{c.condText}</td>
+                <td style={{ padding: "5px 6px", fontFamily: "'Shippori Mincho', serif" }}>{c.calcText}</td>
+                <td style={{ padding: "5px 6px", textAlign: "center", fontWeight: 700, color: c.valid ? "#3B6E71" : "#B33A3A" }}>
+                  {c.valid ? "○ あり" : "✕ なし"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ fontSize: "13px", color: "#6B6248", marginTop: "8px" }}>
+          上の「こたえ」の数は、この表で「○ あり」になったパターンの数と一致しています。見落とさないよう、いつも4つとも確認する習慣をつけましょう。
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TYPE_META = {
+  a: { label: "重なる前・差が縮まる", color: "#3B6E71" },
+  b: { label: "重なった後・差が広がる", color: "#BC4B3C" },
+  c: { label: "重なる前・スタート時点の角度がさらに開く", color: "#9C7A2C" },
+  d: { label: "重なった後・一旦180度を超えてから縮まる", color: "#8B4B8C" },
+};
+
+function SolutionBlock({ index, h, hLabel, target, sol }) {
+  const meta = TYPE_META[sol.type];
+  const shortDeg = 30 * h + 0.5 * sol.mDecimal;
+  const longDeg = 6 * sol.mDecimal;
+
+  return (
+    <div className="block">
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+        <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: meta.color, display: "inline-block" }} />
+        <span style={{ fontFamily: "'Shippori Mincho', serif", fontWeight: 700, fontSize: "15px" }}>
+          こたえ{index}：{meta.label}
+        </span>
+      </div>
+      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "flex-start" }}>
+        <ClockFace shortDeg={shortDeg} longDeg={longDeg} angleLabel={`${target}度`} />
+        <div style={{ flex: 1, minWidth: "230px", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <StepCard n="③" title="目標との差を考える">
+            {sol.type === "a" && (
+              <>長針が短針に追いつくまでの間に、この{sol.gap0}度の差が縮まって{target}度になります。縮める角度は <Num>{sol.gap0}−{target}＝{sol.diff}度</Num> です。</>
+            )}
+            {sol.type === "b" && (
+              <>長針が短針に追いついて重なったあと、差は0度から広がっていきます。重なるまでの{sol.gap0}度と、そこからさらに広がる{target}度を合わせて、必要な角度は <Num>{sol.gap0}＋{target}＝{sol.diff}度</Num> です。</>
+            )}
+            {sol.type === "c" && (
+              <>{hLabel}時ちょうどの時点で、実際のなす角はすでに{sol.startActual}度あります。長針が短針に追いつくまでの間に、この角度が一旦さらに開いて{target}度になる瞬間があります。開く角度は <Num>{target}−{sol.startActual}＝{sol.diff}度</Num> です。</>
+            )}
+            {sol.type === "d" && (
+              <>長針が短針に追いついて重なったあと、差は一旦180度を超えるまで広がり、そこから再び縮んで{target}度になります。必要な角度の合計は <Num>{sol.gap0}＋(360−{target})＝{sol.diff}度</Num> です。</>
+            )}
+          </StepCard>
+          <StepCard n="④" title="時間になおす">
+            <Num>{sol.diff}度 ÷ 5.5度 ＝ {sol.diff}×2/11分</Num> ＝ {mixed11(sol.wholeMin, sol.fracMinNum)}分。
+            <br />
+            答え：<Num>{hLabel}時{mixed11(sol.wholeMin, sol.fracMinNum)}分</Num>
+          </StepCard>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 「角度をもとめる」モード(逆パターン) ============ */
+
+function FindAnglePanel() {
+  const [h, setH] = useState(5);
+  const [m, setM] = useState(20);
+
+  const base = 30 * h;
+  const shortAdd = 0.5 * m;
+  const shortPos = base + shortAdd;
+  const longPos = 6 * m;
+  const rawDiff = Math.abs(shortPos - longPos);
+  const finalAngle = rawDiff > 180 ? 360 - rawDiff : rawDiff;
+  const hLabel = h === 0 ? 12 : h;
+
+  const fmt = (v) => (Number.isInteger(v) ? v : v.toFixed(1));
+
+  return (
+    <div>
+      <div className="controlRow">
+        <select value={h} onChange={(e) => setH(Number(e.target.value))}>
+          {Array.from({ length: 12 }, (_, i) => i).map((v) => (
+            <option key={v} value={v}>{v === 0 ? 12 : v}</option>
+          ))}
+        </select>
+        <span>時</span>
+        <input
+          type="number" min="0" max="59" value={m}
+          onChange={(e) => setM(Math.max(0, Math.min(59, Number(e.target.value))))}
+          style={{ width: "64px" }}
+        />
+        <span>分のとき、長針と短針の作る角度(小さい方)は?</span>
+      </div>
+
+      <div className="block" style={{ maxWidth: "640px" }}>
+        <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "flex-start" }}>
+          <ClockFace shortDeg={shortPos} longDeg={longPos} />
+          <div style={{ flex: 1, minWidth: "230px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <StepCard n="①" title="短針が1分で動く角度">
+              短針は1時間(60分)で30度動くので、1分間では <Num>30÷60＝0.5度</Num> 動きます。
+            </StepCard>
+            <StepCard n="②" title="短針の位置">
+              {hLabel}時ちょうどのとき、短針は12の位置から <Num>30×{h}＝{base}度</Num> の場所にいます。そこから{m}分進んだ分だけさらに動くので、<Num>0.5×{m}＝{fmt(shortAdd)}度</Num> 進みます。
+              よって短針の位置は <Num>{base}＋{fmt(shortAdd)}＝{fmt(shortPos)}度</Num> です。
+            </StepCard>
+            <StepCard n="③" title="長針の位置">
+              長針は{m}分で <Num>6×{m}＝{fmt(longPos)}度</Num> の位置にいます。
+            </StepCard>
+            <StepCard n="④" title="大きい方から小さい方をひく">
+              {fmt(Math.max(shortPos, longPos))}−{fmt(Math.min(shortPos, longPos))}＝<Num>{fmt(rawDiff)}度</Num>。
+              {rawDiff > 180 ? (
+                <> これは180度を超えているので、360−{fmt(rawDiff)}＝<Num>{fmt(finalAngle)}度</Num> がなす角(小さい方)です。</>
+              ) : (
+                <> これは180度以下なので、そのままなす角は <Num>{fmt(finalAngle)}度</Num> です。</>
+              )}
+              <br />
+              答え：<Num>{fmt(finalAngle)}度</Num>
+            </StepCard>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 本体 ============ */
+
+function ClockLab() {
+  const [mode, setMode] = useState("findTime");
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#F6F1E4",
+      fontFamily: "'Noto Sans JP', sans-serif",
+      color: "#2A2A24",
+      padding: "20px 14px 60px",
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        * { box-sizing: border-box; }
+        .wrap { max-width: 880px; margin: 0 auto; }
+        select, input {
+          font-family: 'Noto Sans JP', sans-serif;
+          font-size: 14.5px;
+          padding: 5px 8px;
+          border: 1px solid #C9BEA1;
+          border-radius: 6px;
+          background: #FFFDF7;
+          color: #2A2A24;
+        }
+        select:focus, input:focus { outline: 2px solid #3B6E71; outline-offset: 1px; }
+        .controlRow {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+          background: #FFFDF7; border: 1px solid #E4DCC7; border-radius: 10px;
+          padding: 14px 16px; margin-bottom: 18px; font-size: 15px; line-height: 1.9;
+        }
+        .resultGrid {
+          display: grid; grid-template-columns: 1fr; gap: 18px;
+        }
+        @media (min-width: 760px) {
+          .resultGrid { grid-template-columns: 1fr 1fr; }
+        }
+        .block {
+          background: #FBF7EC; border: 1px solid #E4DCC7; border-radius: 12px; padding: 16px;
+        }
+        .tabBtn {
+          font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 700;
+          padding: 10px 18px; border-radius: 8px 8px 0 0; cursor: pointer;
+          border: 1px solid #C9BEA1; border-bottom: none; background: #EFE7D3; color: #6B6248;
+        }
+        .tabBtn.active { background: #FBF7EC; color: #2A2A24; border-color: #E4DCC7; }
+      `}</style>
+
+      <div className="wrap">
+        <div style={{ marginBottom: "22px" }}>
+          <div style={{ fontSize: "12px", letterSpacing: "0.12em", color: "#9C3A2C", fontWeight: 700, marginBottom: "4px" }}>
+            中学受験・時計算ラボ
+          </div>
+          <h1 style={{ fontFamily: "'Shippori Mincho', serif", fontSize: "26px", margin: 0 }}>
+            長針と短針の旅人算
+          </h1>
+          <p style={{ margin: "8px 0 0", fontSize: "14px", color: "#5B5544", lineHeight: 1.7 }}>
+            時刻や目標の角度を入力すると、①差の速さ →②スタート時点の角度差 →③目標との差 →④時間になおす、の順で解き方が表示されます。
+          </p>
+        </div>
+
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button className={`tabBtn ${mode === "findTime" ? "active" : ""}`} onClick={() => setMode("findTime")}>
+            時刻をもとめる
+          </button>
+          <button className={`tabBtn ${mode === "findAngle" ? "active" : ""}`} onClick={() => setMode("findAngle")}>
+            角度をもとめる(逆パターン)
+          </button>
+        </div>
+        <div style={{ background: "#FBF7EC", border: "1px solid #E4DCC7", borderTop: "none", borderRadius: "0 0 12px 12px", padding: "18px" }}>
+          {mode === "findTime" ? <FindTimePanel /> : <FindAnglePanel />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<ClockLab />);
+</script>
+</body>
+</html>
