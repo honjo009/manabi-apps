@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>地球儀タイムマシン｜経度と時刻をたんけん</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; }
+  #root { min-height: 100vh; }
+</style>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useMemo, useCallback } = React;
+
+// ---- Model constants -------------------------------------------------
+const BASE_UTC_MS = Date.UTC(2026, 2, 31, 3, 0, 0); // 3/31 03:00 UTC -> Japan noon at step 0
+const STEP_HOURS = 3;
+const MIN_STEP = -8;
+const MAX_STEP = 8;
+
+const PLACES = [
+  { id: "nz", name: "ニュージーランド", short: "NZ", longitude: 180, offset: 12, emoji: "🥝" },
+  { id: "jp", name: "日本", short: "JP", longitude: 135, offset: 9, emoji: "🗾" },
+  { id: "gr", name: "グリニジ", short: "GR", longitude: 0, offset: 0, emoji: "🏛️" },
+  { id: "hi", name: "ハワイ", short: "HI", longitude: -150, offset: -10, emoji: "🌺" },
+];
+
+const WEEKDAY_KANJI = ["日", "月", "火", "水", "木", "金", "土"];
+
+function norm360(deg) {
+  let d = deg % 360;
+  if (d < 0) d += 360;
+  return d;
+}
+
+function longLabel(deg) {
+  const d = norm360(deg);
+  if (d === 0) return "0°";
+  if (d === 180) return "180°（日付変更線）";
+  if (d < 180) return `東経${d}°`;
+  return `西経${360 - d}°`;
+}
+
+function localHourOf(p, utcMs) {
+  const localMs = utcMs + p.offset * 3600000;
+  return new Date(localMs).getUTCHours();
+}
+
+function isDaytime(hour) {
+  return hour >= 6 && hour < 18;
+}
+
+function computeSubsolar(utcMs) {
+  let hours = (utcMs / 3600000) % 24;
+  if (hours < 0) hours += 24;
+  return 15 * (12 - hours);
+}
+
+function EarthTimeExplorer() {
+  const [step, setStep] = useState(0);
+  const dragRef = useRef({ active: false, startX: 0 });
+  const [dragging, setDragging] = useState(false);
+
+  const utcMs = BASE_UTC_MS + step * STEP_HOURS * 3600 * 1000;
+  const subsolar = computeSubsolar(utcMs);
+
+  const goForward = useCallback(() => {
+    setStep((s) => Math.min(MAX_STEP, s + 1));
+  }, []);
+  const goBack = useCallback(() => {
+    setStep((s) => Math.max(MIN_STEP, s - 1));
+  }, []);
+
+  const onPointerDown = (e) => {
+    dragRef.current = { active: true, startX: e.clientX ?? e.touches?.[0]?.clientX ?? 0 };
+    setDragging(true);
+  };
+  const onPointerUp = (e) => {
+    if (!dragRef.current.active) return;
+    const endX = e.clientX ?? e.changedTouches?.[0]?.clientX ?? dragRef.current.startX;
+    const dx = endX - dragRef.current.startX;
+    if (dx <= -40) goForward();
+    else if (dx >= 40) goBack();
+    dragRef.current.active = false;
+    setDragging(false);
+  };
+
+  // ---- geometry ----
+  const CX = 200, CY = 200, R = 168;
+
+  const placePoints = useMemo(() => {
+    return PLACES.map((p) => {
+      const angle = norm360(p.longitude - subsolar);
+      const rad = (angle * Math.PI) / 180;
+      const x = CX + R * 0.62 * Math.cos(rad);
+      const y = CY - R * 0.62 * Math.sin(rad);
+      const isDay = isDaytime(localHourOf(p, utcMs));
+      return { ...p, x, y, isDay, angle };
+    });
+  }, [subsolar, utcMs]);
+
+  const meridians = useMemo(() => {
+    const bases = [0, 45, 90, 135];
+    const LR = R * 1.13;
+    return bases.map((base) => {
+      const a1 = norm360(base - subsolar);
+      const rad1 = (a1 * Math.PI) / 180;
+      const rad2 = rad1 + Math.PI;
+      return {
+        key: base,
+        solid: base === 0,
+        x1: CX + R * Math.cos(rad1),
+        y1: CY - R * Math.sin(rad1),
+        x2: CX + R * Math.cos(rad2),
+        y2: CY - R * Math.sin(rad2),
+        label1: { x: CX + LR * Math.cos(rad1), y: CY - LR * Math.sin(rad1), text: longLabel(base) },
+        label2: { x: CX + LR * Math.cos(rad2), y: CY - LR * Math.sin(rad2), text: longLabel(base + 180) },
+      };
+    });
+  }, [subsolar]);
+
+  // display info per place
+  const cards = useMemo(() => {
+    return PLACES.map((p) => {
+      const localMs = utcMs + p.offset * 3600000;
+      const d = new Date(localMs);
+      const month = d.getUTCMonth() + 1;
+      const date = d.getUTCDate();
+      const hour = d.getUTCHours();
+      const weekday = WEEKDAY_KANJI[d.getUTCDay()];
+      const isDay = isDaytime(hour);
+      return { ...p, month, date, hour, weekday, isDay, localMs };
+    });
+  }, [utcMs, subsolar]);
+
+  const hiCard = cards.find((c) => c.id === "hi");
+  const nzCard = cards.find((c) => c.id === "nz");
+  const gapHoursRaw = Math.round((nzCard.localMs - hiCard.localMs) / 3600000);
+  const gapDays = Math.floor(gapHoursRaw / 24);
+  const gapHoursRem = gapHoursRaw % 24;
+
+  return (
+    <div style={styles.page}>
+      <style>{CSS}</style>
+
+      <div style={styles.header}>
+        <div style={styles.eyebrow}>ちきゅう ぐるぐる たんけん</div>
+        <h1 style={styles.title}>地球儀タイムマシン</h1>
+        <p style={styles.subtitle}>地球をまわして、世界のいろんな場所の「今」を見てみよう</p>
+      </div>
+
+      <div style={styles.layout}>
+        {/* -------- Globe -------- */}
+        <div style={styles.globeColumn}>
+          <div
+            style={{ ...styles.globeWrap, cursor: dragging ? "grabbing" : "grab" }}
+            onMouseDown={onPointerDown}
+            onMouseUp={onPointerUp}
+            onMouseLeave={() => { dragRef.current.active = false; setDragging(false); }}
+            onTouchStart={onPointerDown}
+            onTouchEnd={onPointerUp}
+          >
+            <svg viewBox="0 0 400 400" width="100%" height="100%" style={{ overflow: "visible" }}>
+              <defs>
+                <clipPath id="circleClip">
+                  <circle cx={CX} cy={CY} r={R} />
+                </clipPath>
+              </defs>
+
+              {/* fixed night/day halves */}
+              <g clipPath="url(#circleClip)">
+                <rect x="0" y="0" width="200" height="400" fill="#050608" />
+                <rect x="200" y="0" width="200" height="400" fill="#1b5fd6" />
+                {/* stars, fixed on night side */}
+                {STARS.map((s, i) => (
+                  <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#ffe9b8" opacity={s.o} className="twinkle" style={{ animationDelay: `${s.d}s` }} />
+                ))}
+              </g>
+
+              {/* meridians (rotating) */}
+              {meridians.map((m) => (
+                <g key={m.key}>
+                  <line
+                    x1={m.x1} y1={m.y1} x2={m.x2} y2={m.y2}
+                    stroke={m.solid ? "#ffb84d" : "#f4ead0"}
+                    strokeWidth={m.solid ? 2.4 : 1.3}
+                    strokeDasharray={m.solid ? "0" : "5 6"}
+                    strokeLinecap="round"
+                    className="rotatable"
+                    opacity={m.solid ? 0.95 : 0.55}
+                  />
+                  <text
+                    x={m.label1.x} y={m.label1.y}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fontSize="9.5" fill="#ffe9b8" fontFamily="var(--font-body)"
+                    className="rotatable"
+                  >{m.label1.text}</text>
+                  <text
+                    x={m.label2.x} y={m.label2.y}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fontSize="9.5" fill="#ffe9b8" fontFamily="var(--font-body)"
+                    className="rotatable"
+                  >{m.label2.text}</text>
+                </g>
+              ))}
+
+              {/* fixed sunrise / sunset markers at day-night boundary */}
+              <text x={CX} y={CY - R + 16} textAnchor="middle" fontSize="10.5" fontWeight="700" fill="#ffffff" fontFamily="var(--font-body)" opacity="0.85">夕方18時ごろ</text>
+              <text x={CX} y={CY + R - 10} textAnchor="middle" fontSize="10.5" fontWeight="700" fill="#ffffff" fontFamily="var(--font-body)" opacity="0.85">朝6時ごろ</text>
+
+              {/* outer ring */}
+              <circle cx={CX} cy={CY} r={R} fill="none" stroke="#f4ead0" strokeWidth="2.5" opacity="0.9" />
+
+              {/* north pole marker */}
+              <circle cx={CX} cy={CY} r="3.5" fill="#ffffff" />
+              <text x={CX} y={CY - 10} textAnchor="middle" fontSize="11" fill="#ffffff" fontFamily="var(--font-body)">北極</text>
+
+              {/* place markers (rotating) */}
+              {placePoints.map((p) => (
+                <g key={p.id} className="rotatable">
+                  <circle
+                    cx={p.x} cy={p.y} r="7"
+                    fill={p.isDay ? "#ff8a3d" : "#ffe27a"}
+                    stroke="#1b2340" strokeWidth="1.5"
+                  />
+                  <text
+                    x={p.x} y={p.y - 13}
+                    textAnchor="middle" fontSize="15"
+                  >{p.emoji}</text>
+                  <text
+                    x={p.x} y={p.y + 22}
+                    textAnchor="middle" fontSize="11"
+                    fill="#ffffff"
+                    fontFamily="var(--font-body)"
+                    fontWeight="700"
+                    style={{ paintOrder: "stroke", stroke: "#00000080", strokeWidth: 2.5 }}
+                  >{p.name}</text>
+                </g>
+              ))}
+            </svg>
+
+            {/* sun, fixed */}
+            <div style={styles.sunWrap}>
+              <div style={styles.sun}>☀️</div>
+            </div>
+          </div>
+
+          <div style={styles.controls}>
+            <button
+              style={{ ...styles.btn, opacity: step <= MIN_STEP ? 0.35 : 1 }}
+              disabled={step <= MIN_STEP}
+              onClick={goBack}
+            >◀ 3時間もどす</button>
+            <div style={styles.stepLabel}>{step >= 0 ? `+${step * 3}` : step * 3}時間</div>
+            <button
+              style={{ ...styles.btn, opacity: step >= MAX_STEP ? 0.35 : 1 }}
+              disabled={step >= MAX_STEP}
+              onClick={goForward}
+            >3時間すすめる ▶</button>
+          </div>
+          <div style={styles.swipeHint}>指で地球をスワイプしても回せるよ</div>
+        </div>
+
+        {/* -------- Cards -------- */}
+        <div style={styles.cardColumn}>
+          {cards.map((c) => (
+            <div key={c.id} style={{ ...styles.card, ...(c.isDay ? styles.cardDay : styles.cardNight) }}>
+              <div style={styles.cardTop}>
+                <span style={styles.cardEmoji}>{c.emoji}</span>
+                <span style={styles.cardName}>{c.name}</span>
+                <span style={styles.cardBadge}>{c.isDay ? "☀️ ひる" : "🌙 よる"}</span>
+              </div>
+              <div style={styles.cardTime}>
+                {c.month}月{c.date}日（{c.weekday}）
+                <span style={styles.cardHour}>{c.hour}:00</span>
+              </div>
+              <div style={styles.cardSub}>
+                {c.id === "gr"
+                  ? "きじゅんの時刻（経度0°）"
+                  : `グリニジより ${c.offset > 0 ? `${c.offset}時間はやい` : `${Math.abs(c.offset)}時間おそい`}`}
+              </div>
+            </div>
+          ))}
+
+          <div style={styles.insight}>
+            🌏 ハワイとニュージーランドは地球の反対側どうしではないのに、いまの時刻の差は
+            <b> {gapDays > 0 ? `${gapDays}日と` : ""}{gapHoursRem}時間 </b>
+            もあるよ！
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const STARS = [
+  { x: 40, y: 60, r: 2, o: 0.9, d: 0 },
+  { x: 90, y: 40, r: 1.4, o: 0.7, d: 0.5 },
+  { x: 60, y: 140, r: 1.8, o: 0.8, d: 1 },
+  { x: 30, y: 220, r: 1.4, o: 0.6, d: 1.5 },
+  { x: 100, y: 260, r: 2, o: 0.9, d: 0.3 },
+  { x: 55, y: 320, r: 1.6, o: 0.7, d: 0.8 },
+  { x: 120, y: 100, r: 1.3, o: 0.6, d: 1.2 },
+  { x: 20, y: 340, r: 1.6, o: 0.8, d: 0.6 },
+];
+
+const CSS = `
+  :root {
+    --font-display: 'M PLUS Rounded 1c', sans-serif;
+    --font-body: 'Zen Maru Gothic', sans-serif;
+  }
+  .rotatable { transition: all 0.45s cubic-bezier(.2,.9,.25,1.2); }
+  .twinkle { animation: tw 2.6s ease-in-out infinite; }
+  @keyframes tw { 0%,100%{opacity:.3} 50%{opacity:1} }
+`;
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "linear-gradient(160deg,#0c1c3f 0%,#16295c 45%,#1c3268 100%)",
+    padding: "28px 16px 48px",
+    fontFamily: "var(--font-body)",
+    color: "#f4ead0",
+    boxSizing: "border-box",
+  },
+  header: { textAlign: "center", marginBottom: 20 },
+  eyebrow: {
+    fontSize: 12, letterSpacing: 2, color: "#ffb84d", fontWeight: 700, marginBottom: 4,
+  },
+  title: {
+    fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, margin: "0 0 6px",
+    color: "#fff", textShadow: "0 2px 10px rgba(255,184,77,0.25)",
+  },
+  subtitle: { fontSize: 13.5, color: "#cdd7f2", margin: 0 },
+  layout: {
+    display: "flex", flexWrap: "wrap", gap: 28, justifyContent: "center", maxWidth: 900, margin: "0 auto",
+  },
+  globeColumn: { display: "flex", flexDirection: "column", alignItems: "center", width: 320 },
+  globeWrap: {
+    position: "relative", width: 300, height: 300, touchAction: "none",
+    filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.35))",
+  },
+  sunWrap: {
+    position: "absolute", right: -46, top: "50%", transform: "translateY(-50%)",
+    display: "flex", alignItems: "center", flexDirection: "column",
+  },
+  sun: { fontSize: 30, marginBottom: 4, filter: "drop-shadow(0 0 10px #ffb84d)" },
+  controls: {
+    display: "flex", alignItems: "center", gap: 10, marginTop: 18, width: "100%", justifyContent: "center",
+  },
+  btn: {
+    fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13,
+    background: "#ffb84d", color: "#1b2340", border: "none", borderRadius: 999,
+    padding: "10px 14px", cursor: "pointer", whiteSpace: "nowrap",
+  },
+  stepLabel: {
+    fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700,
+    background: "rgba(255,255,255,0.08)", padding: "8px 12px", borderRadius: 999, minWidth: 64, textAlign: "center",
+  },
+  swipeHint: { fontSize: 11.5, color: "#8fa0cf", marginTop: 10 },
+  cardColumn: { display: "flex", flexDirection: "column", gap: 12, width: 320 },
+  card: {
+    borderRadius: 18, padding: "14px 16px", border: "1px solid rgba(255,255,255,0.08)",
+  },
+  cardDay: { background: "linear-gradient(135deg,#e9f8ff,#c9ecfb)", color: "#16213e" },
+  cardNight: { background: "linear-gradient(135deg,#141f42,#0c1730)", color: "#f4ead0" },
+  cardTop: { display: "flex", alignItems: "center", gap: 8, marginBottom: 6 },
+  cardEmoji: { fontSize: 18 },
+  cardName: { fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, flex: 1 },
+  cardBadge: { fontSize: 12, opacity: 0.85 },
+  cardTime: {
+    fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 19, display: "flex",
+    alignItems: "baseline", gap: 10,
+  },
+  cardHour: { fontSize: 24 },
+  cardSub: { fontSize: 11.5, marginTop: 4, opacity: 0.75 },
+  insight: {
+    marginTop: 6, fontSize: 12.5, lineHeight: 1.6, background: "rgba(255,184,77,0.12)",
+    border: "1px solid rgba(255,184,77,0.35)", borderRadius: 14, padding: "12px 14px",
+  },
+};
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<EarthTimeExplorer />);
+</script>
+</body>
+</html>

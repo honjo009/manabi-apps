@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>月の満ち欠け 3Dラボ</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #060a1e; overscroll-behavior: none; }
+  #root { height: 100%; }
+</style>
+
+<!-- React / ReactDOM -->
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<!-- Three.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<!-- Babel standalone (JSXをブラウザ上で変換。ビルド不要) -->
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useEffect, useRef, useState } = React;
+
+const PHASES = [
+  { name: '新月', kana: 'ア' },
+  { name: '三日月', kana: 'イ' },
+  { name: '上弦の月', kana: 'ウ' },
+  { name: '十三夜', kana: 'エ' },
+  { name: '満月', kana: 'オ' },
+  { name: '十六夜', kana: 'カ' },
+  { name: '下弦の月', kana: 'キ' },
+  { name: '二十六夜', kana: 'ク' },
+];
+const TIMES = [18, 21, 0, 3, 6];
+
+const ORBIT_R = 45; // 地球の半径に対して十分遠くすることで、観測地点による視差(見た目の欠け方のズレ)を無視できるようにする
+const EARTH_R = 1.7; // 観測者の目の位置など、実際の物理計算に使う半径
+const EARTH_DISPLAY_R = 11; // 俯瞰モードで地球をビルボード表示する際の見た目の大きさ（★の位置もこれに合わせる）
+const MOON_R = 2.3; // 満ち欠けの形の正しさは距離の比率(ORBIT_R/EARTH_R)で決まるため、大きさはここを上げても崩れない
+const EYE_H = 0.55;
+const LAT = (35 * Math.PI) / 180; // 観測地：北緯35度（日本を想定）
+
+const toRad = (d) => (d * Math.PI) / 180;
+const toDeg = (r) => (r * 180) / Math.PI;
+const phaseAngle = (i) => toRad(i * 45);
+const observerAngleRad = (t) => {
+  let deg = ((t - 12) * 15) % 360;
+  if (deg < 0) deg += 360;
+  return toRad(deg);
+};
+const circlePos = (angle, r) =>
+  new THREE.Vector3(r * Math.cos(angle), 0, -r * Math.sin(angle));
+const easeInOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+
+// ---- 南の空を向いた観測者から見た、月の高度・方位（赤緯0と仮定した簡易モデル） ----
+function computeMoonSky(pIdx, tIdx) {
+  const H = observerAngleRad(TIMES[tIdx]) - phaseAngle(pIdx); // 時角に相当
+  const sinAlt = Math.cos(LAT) * Math.cos(H);
+  const alt = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+  const cosAlt = Math.cos(alt) || 0.0001;
+  const sinA = -Math.sin(H) / cosAlt;
+  const cosA = (-Math.sin(LAT) * Math.cos(H)) / cosAlt;
+  const azimuth = Math.atan2(sinA, cosA); // 北=0, 東=90, 南=180, 西=270（度換算前）
+  const azDeg = ((toDeg(azimuth) % 360) + 360) % 360;
+  const altDeg = toDeg(alt);
+  const visible = altDeg > 0.5;
+
+  let dev = azDeg - 180; // 南からのズレ（負=東寄り、正=西寄り）
+  if (dev > 180) dev -= 360;
+  if (dev < -180) dev += 360;
+
+  const xPct = Math.max(6, Math.min(94, 50 + (dev / 90) * 42));
+  const yPct = Math.max(8, Math.min(90, 90 - (Math.max(altDeg, 0) / 70) * 78));
+
+  let sideLabel;
+  if (!visible) sideLabel = '見えない';
+  else if (Math.abs(dev) < 15) sideLabel = '南の空高く';
+  else if (dev < 0) sideLabel = '東よりの空';
+  else sideLabel = '西よりの空';
+
+  return { visible, altDeg, azDeg, xPct, yPct, sideLabel };
+}
+
+function makeEarthTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, '#2f8fd6'); grad.addColorStop(1, '#154c85');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 512, 256);
+  ctx.fillStyle = '#57b878';
+  const blobs = [
+    [70, 95, 55, 30], [170, 150, 70, 26], [300, 70, 60, 34],
+    [385, 150, 55, 28], [230, 195, 42, 20], [455, 60, 34, 22],
+    [40, 40, 30, 18],
+  ];
+  blobs.forEach(([x, y, w, h]) => {
+    ctx.beginPath(); ctx.ellipse(x, y, w, h, 0, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  for (let i = 0; i < 9; i++) {
+    ctx.beginPath();
+    ctx.ellipse(Math.random() * 512, Math.random() * 90 + 10, 28 + Math.random() * 35, 9 + Math.random() * 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  return tex;
+}
+
+function makeEarthDiscTexture(size = 512) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  const cx = size / 2, cy = size / 2, r = size / 2 - 6;
+
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+
+  const grad = ctx.createLinearGradient(0, cy - r, 0, cy + r);
+  grad.addColorStop(0, '#3d9bdc'); grad.addColorStop(1, '#123f70');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
+
+  ctx.fillStyle = '#57b878';
+  const blobs = [
+    [cx - 130, cy - 90, 55, 34], [cx - 20, cy - 40, 68, 30], [cx + 110, cy - 110, 58, 36],
+    [cx + 150, cy + 30, 50, 26], [cx - 60, cy + 90, 46, 22], [cx + 40, cy + 130, 36, 20],
+    [cx - 150, cy + 40, 30, 18],
+  ];
+  blobs.forEach(([x, y, w, h]) => {
+    ctx.beginPath(); ctx.ellipse(x, y, w, h, 0.3, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  for (let i = 0; i < 8; i++) {
+    const a = Math.random() * Math.PI * 2, d = Math.random() * r * 0.8;
+    ctx.beginPath();
+    ctx.ellipse(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 30 + Math.random() * 30, 10 + Math.random() * 10, a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 球っぽく見せるための陰影（左下を少し暗く）
+  const shade = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.2, cx, cy, r * 1.3);
+  shade.addColorStop(0, 'rgba(255,255,255,0.18)');
+  shade.addColorStop(0.5, 'rgba(0,0,0,0)');
+  shade.addColorStop(1, 'rgba(0,0,10,0.45)');
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 0, size, size);
+  ctx.restore();
+
+  const tex = new THREE.CanvasTexture(c);
+  return tex;
+}
+
+// 太陽光の向き（俯瞰モードの光源と同じ）：明るい側がどちらを向くかの基準
+const SUN_DIR = new THREE.Vector3(30, 5, 0).normalize();
+
+// ユーザー提供の実例（三日月/上弦/十三夜=右寄り〜下、十六夜/下弦/二十六夜=左寄り〜下）に合わせて、
+// 「南中で光っている側」を基準に、月の出入りに近づくほど下向きへ回転させる角度を返す。
+// 角度は数学の標準（0°=右, 90°=上, 180°=左, 270°=下, 反時計回り）。
+function terminatorAngleDeg(pIdx, deltaDeg) {
+  if (pIdx === 0 || pIdx === 4) return 0; // 新月・満月は向きが無関係
+  const waxing = pIdx < 4; // 三日月・上弦・十三夜＝右寄りが基準／十六夜・下弦・二十六夜＝左寄りが基準
+  return deltaDeg + (waxing ? 0 : 180);
+}
+
+// ---- 着陸ステージ：観測者の目の位置に立つが、まだ月の方向は見ていない自然な立ち姿勢 ----
+function computeLandingTarget(tIdx) {
+  const angle = observerAngleRad(TIMES[tIdx]);
+  const up = new THREE.Vector3(Math.cos(angle), 0, -Math.sin(angle));
+  const south = new THREE.Vector3(0, -1, 0);
+  const eyePos = up.clone().multiplyScalar(EARTH_R + EYE_H);
+  const viewDir = south.clone().multiplyScalar(0.9).add(up.clone().multiplyScalar(0.35)).normalize();
+  const lookAtPoint = eyePos.clone().add(viewDir);
+  const m = new THREE.Matrix4().lookAt(eyePos, lookAtPoint, up);
+  const quaternion = new THREE.Quaternion().setFromRotationMatrix(m);
+  return { position: eyePos, quaternion, fov: 40 };
+}
+
+// ---- 地上視点カメラ：観測者の目の位置から、実際の3D空間上の月を見つめる ----
+// （3Dシーン自体は緯度を表現できない簡易モデルなので、正確な方角・高度は
+//   画面上のテキスト注記（computeMoonSky）で補足する）
+function computeGroundTarget(pIdx, tIdx) {
+  const angle = observerAngleRad(TIMES[tIdx]);
+  const up = new THREE.Vector3(Math.cos(angle), 0, -Math.sin(angle));
+  const south = new THREE.Vector3(0, -1, 0);
+  const eyePos = up.clone().multiplyScalar(EARTH_R + EYE_H);
+  const moonPos = circlePos(phaseAngle(pIdx), ORBIT_R);
+  const delta = phaseAngle(pIdx) - angle;
+  const schematicVisible = Math.cos(delta) > -0.05; // 月の出・月の入りの境界(ちょうど地平線)も「ぎりぎり見える」扱いにする
+
+  let viewDir;
+  if (schematicVisible) {
+    viewDir = moonPos.clone().sub(eyePos).normalize();
+  } else {
+    viewDir = south.clone().multiplyScalar(0.85).add(up.clone().multiplyScalar(0.42)).normalize();
+  }
+  viewDir.add(new THREE.Vector3(0.0004, 0.0003, 0.0002)).normalize();
+  const lookAtPoint = eyePos.clone().add(viewDir);
+
+  // 光源方向のうち、視線に対して垂直な成分（＝画面上で「明るい側」がどちらを向くかの元になる方向）
+  const sunPerp = SUN_DIR.clone().sub(viewDir.clone().multiplyScalar(SUN_DIR.dot(viewDir)));
+  let customUp = up;
+  if (sunPerp.lengthSq() > 1e-6) {
+    sunPerp.normalize();
+    let deltaDegNorm = (delta * 180) / Math.PI;
+    deltaDegNorm = ((deltaDegNorm % 360) + 540) % 360 - 180; // -180〜180に正規化
+    const targetDeg = terminatorAngleDeg(pIdx, deltaDegNorm);
+    const rollRad = toRad(targetDeg - 90);
+    customUp = sunPerp.clone().applyAxisAngle(viewDir, rollRad);
+  }
+
+  const m = new THREE.Matrix4().lookAt(eyePos, lookAtPoint, customUp);
+  const quaternion = new THREE.Quaternion().setFromRotationMatrix(m);
+  return { position: eyePos, quaternion, fov: 40, schematicVisible };
+}
+
+function MoonPhaseApp() {
+  const mountRef = useRef(null);
+  const threeRef = useRef({});
+  const tweenRef = useRef(null);
+  const overviewTargetRef = useRef(null);
+  const starWorldPosRef = useRef(new THREE.Vector3());
+  const observerLabelRef = useRef(null);
+
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const [timeIndex, setTimeIndex] = useState(0);
+  const [mode, setMode] = useState('overview'); // 'overview' | 'ground'
+  const [animating, setAnimating] = useState(false);
+
+  // ---- one-time scene setup ----
+  useEffect(() => {
+    const mount = mountRef.current;
+    const width = mount.clientWidth;
+    const height = mount.clientHeight;
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 900);
+    const overviewPos = new THREE.Vector3(0, 96, 111);
+    camera.position.copy(overviewPos);
+    camera.lookAt(0, 0, 0);
+    overviewTargetRef.current = {
+      position: overviewPos.clone(),
+      quaternion: camera.quaternion.clone(),
+      fov: 42,
+    };
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height);
+    mount.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0x8fa4d6, 0.55));
+    const sunLight = new THREE.DirectionalLight(0xfff0d6, 1.6);
+    sunLight.position.set(30, 5, 0);
+    scene.add(sunLight);
+
+    const starCount = 600;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const r = 380 + Math.random() * 280;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 2 - 1);
+      starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      starPos[i * 3 + 1] = Math.abs(r * Math.cos(phi)) * 0.55 + 20;
+      starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({
+      color: 0xffffff, size: 1.6, transparent: true, opacity: 0.85,
+    }));
+    scene.add(starField);
+
+    const earthGround = new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_R, 48, 48),
+      new THREE.MeshStandardMaterial({ map: makeEarthTexture(), roughness: 0.85 })
+    );
+    scene.add(earthGround);
+
+    const earthDisplay = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: makeEarthDiscTexture(), transparent: true })
+    );
+    earthDisplay.scale.set(EARTH_DISPLAY_R * 2, EARTH_DISPLAY_R * 2, 1);
+    scene.add(earthDisplay);
+
+    const ringPts = [];
+    for (let i = 0; i <= 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      ringPts.push(new THREE.Vector3(ORBIT_R * Math.cos(a), 0, -ORBIT_R * Math.sin(a)));
+    }
+    const orbitRing = new THREE.LineLoop(
+      new THREE.BufferGeometry().setFromPoints(ringPts),
+      new THREE.LineBasicMaterial({ color: 0x5d72b8, transparent: true, opacity: 0.35 })
+    );
+    scene.add(orbitRing);
+
+    const moonGeo = new THREE.SphereGeometry(MOON_R, 32, 32);
+    const moons = PHASES.map((_, i) => {
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xd7d7de, roughness: 0.95, transparent: true, opacity: 0.32,
+      });
+      const mesh = new THREE.Mesh(moonGeo, mat);
+      mesh.position.copy(circlePos(phaseAngle(i), ORBIT_R));
+      scene.add(mesh);
+      return mesh;
+    });
+
+    const halo = new THREE.Mesh(
+      new THREE.RingGeometry(MOON_R * 1.6, MOON_R * 1.95, 40),
+      new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.9, side: THREE.DoubleSide })
+    );
+    halo.rotation.x = Math.PI / 2;
+    scene.add(halo);
+
+    threeRef.current = { scene, camera, renderer, moons, halo, earthGround, earthDisplay, orbitRing, starField };
+    earthGround.visible = false; // 起動直後は俯瞰モードなので、地上用の小さい地球は隠しておく
+
+    const handleResize = () => {
+      const w = mount.clientWidth, h = mount.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    const ro = new ResizeObserver(handleResize);
+    ro.observe(mount);
+
+    let raf;
+    const clock = new THREE.Clock();
+    const animate = () => {
+      const t = clock.getElapsedTime();
+      halo.scale.setScalar(1 + Math.sin(t * 2.2) * 0.06);
+      halo.material.opacity = 0.75 + Math.sin(t * 2.2) * 0.15;
+
+      const tw = tweenRef.current;
+      if (tw) {
+        const elapsed = performance.now() - tw.start;
+        const e = easeInOutCubic(Math.min(elapsed / tw.duration, 1));
+        camera.position.lerpVectors(tw.fromPos, tw.toPos, e);
+        camera.quaternion.slerpQuaternions(tw.fromQuat, tw.toQuat, e);
+        camera.fov = THREE.MathUtils.lerp(tw.fromFov, tw.toFov, e);
+        camera.updateProjectionMatrix();
+        if (elapsed >= tw.duration) {
+          tweenRef.current = null;
+          if (tw.onDone) tw.onDone();
+        }
+      }
+      layoutLabels();
+      renderer.render(scene, camera);
+      raf = requestAnimationFrame(animate);
+    };
+    animate();
+    updateSceneForSelection(0, 0);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      renderer.dispose();
+      mount.removeChild(renderer.domElement);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function place(el, worldVec) {
+    const { camera, renderer } = threeRef.current;
+    if (!el || !camera || !renderer) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    const p = worldVec.clone().project(camera);
+    const offscreen = p.z > 1 || p.z < -1 || Math.abs(p.x) > 1.15 || Math.abs(p.y) > 1.15;
+    if (offscreen) { el.style.opacity = '0'; return; }
+    const x = (p.x * 0.5 + 0.5) * rect.width;
+    const y = (-p.y * 0.5 + 0.5) * rect.height;
+    el.style.transform = `translate(${x}px, ${y}px) translate(-50%,-50%)`;
+    el.style.opacity = '1';
+  }
+
+  function computeOverviewStarWorldPos(tIdx) {
+    const ov = overviewTargetRef.current;
+    if (!ov) return new THREE.Vector3();
+    const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(ov.quaternion);
+    const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(ov.quaternion);
+    // 18時→真上, 21時→左上, 0時→真左, 3時→左下, 6時→真下（画面上の位置として指定通りに配置）
+    const screenAngle = observerAngleRad(TIMES[tIdx]);
+    const dir = camRight.clone().multiplyScalar(Math.cos(screenAngle))
+      .add(camUp.clone().multiplyScalar(Math.sin(screenAngle)))
+      .normalize();
+    return dir.multiplyScalar(EARTH_DISPLAY_R);
+  }
+
+  function layoutLabels() {
+    place(observerLabelRef.current, starWorldPosRef.current);
+  }
+
+  function updateSceneForSelection(pIdx, tIdx) {
+    const { moons, halo } = threeRef.current;
+    if (!moons) return;
+    moons.forEach((m, i) => {
+      const active = i === pIdx;
+      m.material.opacity = active ? 1 : 0.32;
+      m.scale.setScalar(active ? 1.18 : 0.82);
+    });
+    halo.position.copy(circlePos(phaseAngle(pIdx), ORBIT_R));
+    starWorldPosRef.current.copy(computeOverviewStarWorldPos(tIdx));
+  }
+
+  function startTween(target, duration, onDone) {
+    const { camera } = threeRef.current;
+    if (!camera) return;
+    tweenRef.current = {
+      start: performance.now(),
+      duration,
+      fromPos: camera.position.clone(),
+      toPos: target.position.clone(),
+      fromQuat: camera.quaternion.clone(),
+      toQuat: target.quaternion.clone(),
+      fromFov: camera.fov,
+      toFov: target.fov,
+      onDone,
+    };
+  }
+
+  useEffect(() => {
+    updateSceneForSelection(phaseIndex, timeIndex);
+    if (mode === 'ground') {
+      startTween(computeGroundTarget(phaseIndex, timeIndex), 600, null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phaseIndex, timeIndex]);
+
+  function handleLookDown() {
+    setMode('ground');
+    setAnimating(true);
+    const { earthGround, earthDisplay, orbitRing, starField } = threeRef.current;
+    if (earthGround) earthGround.visible = true;
+    if (earthDisplay) earthDisplay.visible = false;
+    if (orbitRing) orbitRing.visible = false;
+    if (starField) starField.visible = false;
+    startTween(computeLandingTarget(timeIndex), 2800, () => {
+      startTween(computeGroundTarget(phaseIndex, timeIndex), 1800, () => setAnimating(false));
+    });
+  }
+
+  function handleBackToOverview() {
+    setMode('overview');
+    setAnimating(true);
+    const { earthGround, earthDisplay, orbitRing, starField } = threeRef.current;
+    if (earthGround) earthGround.visible = false;
+    if (earthDisplay) earthDisplay.visible = true;
+    if (orbitRing) orbitRing.visible = true;
+    if (starField) starField.visible = true;
+    startTween(overviewTargetRef.current, 2000, () => setAnimating(false));
+  }
+
+  const currentPhase = PHASES[phaseIndex];
+  const currentTime = TIMES[timeIndex];
+  const sky = computeMoonSky(phaseIndex, timeIndex);
+  const schematicDelta = phaseAngle(phaseIndex) - observerAngleRad(currentTime);
+  const schematicVisible = Math.cos(schematicDelta) > -0.05; // 月の出・月の入りの境界も「ぎりぎり見える」扱い
+  const schematicEastComp = Math.sin(schematicDelta);
+  const schematicSideLabel = !schematicVisible
+    ? '見えない'
+    : Math.abs(schematicEastComp) < 0.15
+    ? '空の高いところ'
+    : schematicEastComp > 0
+    ? '東よりの空'
+    : '西よりの空';
+
+  // 位置関係は「東の地平線／東の空／南中／西の空／西の地平線」の5パターンのみなので、
+  // 3Dのカメラ・月の描画とは完全に独立に、固定5点のうちどれかをそのまま選ぶ。
+  const SKY_ARC = [
+    { key: 'e0', label: '東の地平線', x: 8, y: 74 },
+    { key: 'e1', label: '東の空', x: 29, y: 30 },
+    { key: 's', label: '南中', x: 50, y: 12 },
+    { key: 'w1', label: '西の空', x: 71, y: 30 },
+    { key: 'w0', label: '西の地平線', x: 92, y: 74 },
+  ];
+  let deltaDegNorm = ((schematicDelta * 180) / Math.PI) % 360;
+  if (deltaDegNorm > 180) deltaDegNorm -= 360;
+  if (deltaDegNorm < -180) deltaDegNorm += 360;
+  const deltaDeg45 = Math.round(deltaDegNorm / 45) * 45;
+  const skyArcIndex = { '90': 0, '45': 1, '0': 2, '-45': 3, '-90': 4 }[String(deltaDeg45)];
+  const skyArcActive = schematicVisible && skyArcIndex !== undefined;
+
+  // 背景の暗さ：南中は追加なし、地平線(月の出/月の入り)は月の高さ付近から、
+  // 空(東より/西より)はその中間あたりから、下端にかけて紺→黒にする
+  let depthGradient = 'none';
+  if (mode === 'ground' && skyArcActive && skyArcIndex !== 2) {
+    const isHorizon = skyArcIndex === 0 || skyArcIndex === 4;
+    const startPct = isHorizon ? 48 : 70;
+    depthGradient = `linear-gradient(to bottom, transparent 0%, transparent ${startPct}%, #0a1330 ${startPct + 14}%, #000000 100%)`;
+  }
+
+  return (
+    <div className="mpApp">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        * { box-sizing: border-box; }
+        .mpApp {
+          position: relative; width: 100%; height: 100vh; min-height: 560px;
+          background: radial-gradient(ellipse at 30% 20%, #142248 0%, #0a1330 55%, #060a1e 100%);
+          font-family: 'Noto Sans JP', sans-serif; color: #eef1ff; overflow: hidden;
+          display: flex; flex-direction: column;
+        }
+        .mpHeader { padding: 12px 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; z-index: 5; }
+        .mpStatusName {
+          font-family: 'Zen Maru Gothic', sans-serif; font-weight: 900; font-size: 18px;
+          letter-spacing: 0.02em; color: #ffe9b8; text-shadow: 0 0 14px rgba(255,214,102,0.3);
+        }
+        .mpSubtitle { font-size: 11px; color: #9fb0e0; width: 100%; }
+        .mpCanvasWrap { position: relative; flex: 1; min-height: 0; }
+        .mpCanvasMount { position: absolute; inset: 0; }
+        .mpDepthLayer { position: absolute; inset: 0; z-index: 1; pointer-events: none; transition: background 0.5s ease; }
+        .mpSunGlow {
+          position: absolute; top: -10%; right: -22%; width: 60%; height: 120%;
+          background: radial-gradient(circle at 30% 50%, rgba(255,170,80,0.55), rgba(255,120,40,0.18) 55%, transparent 75%);
+          pointer-events: none; filter: blur(2px); transition: opacity 0.4s;
+        }
+        .mpLabel {
+          position: absolute; top: 0; left: 0; font-size: 12px; font-weight: 700; color: #cfe0ff;
+          background: rgba(10,16,40,0.55); padding: 1px 6px; border-radius: 6px; pointer-events: none;
+          white-space: nowrap; transition: opacity 0.15s;
+        }
+        .mpLabel.star { background: none; padding: 0; font-size: 24px; color: #ffd452; text-shadow: 0 0 10px rgba(255,212,82,0.9); }
+
+        .mpSkyArc {
+          position: absolute; left: 4%; right: 4%; top: 2%; height: 30%; z-index: 4; pointer-events: none;
+        }
+        .mpSkyArcDot {
+          position: absolute; transform: translate(-50%,-50%); display: flex; flex-direction: column;
+          align-items: center; gap: 2px;
+        }
+        .mpSkyArcDot::before {
+          content: ''; width: 9px; height: 9px; border-radius: 50%;
+          background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.5);
+        }
+        .mpSkyArcDot.active::before {
+          width: 15px; height: 15px; background: #ffd452; border-color: #fff2c4;
+          box-shadow: 0 0 12px rgba(255,212,82,0.9);
+        }
+        .mpSkyArcLabel {
+          font-size: 9.5px; color: #cdd9ff; background: rgba(8,12,32,0.6); padding: 1px 5px;
+          border-radius: 6px; white-space: nowrap; font-family: 'Zen Maru Gothic', sans-serif;
+        }
+        .mpSkyArcDot.active .mpSkyArcLabel { color: #3a2600; background: #ffd452; font-weight: 700; }
+
+        .mpNotVisible {
+          position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%); z-index: 3;
+          text-align: center; background: rgba(8,10,26,0.72); border: 1px solid rgba(150,170,255,0.25);
+          border-radius: 16px; padding: 16px 22px; backdrop-filter: blur(5px);
+        }
+        .mpNotVisible .big { font-size: 16px; font-weight: 900; font-family: 'Zen Maru Gothic', sans-serif; color: #d9e2ff; }
+        .mpNotVisible .small { font-size: 11px; color: #8fa0d6; margin-top: 4px; }
+
+        .mpPicker { z-index: 6; background: linear-gradient(180deg, rgba(9,13,33,0.4), rgba(6,9,25,0.96) 30%); padding: 10px 12px 14px; }
+        .mpPickerRow { margin-bottom: 8px; }
+        .mpPickerLabel { font-size: 11px; color: #8fa0d6; margin: 0 4px 5px; font-weight: 700; }
+        .mpPickerTrack { display: flex; gap: 6px; overflow-x: auto; padding: 3px 2px; scrollbar-width: none; }
+        .mpPickerTrack::-webkit-scrollbar { display: none; }
+        .mpPickerItem {
+          flex: 0 0 auto; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
+          color: #cdd6f0; border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 600;
+          font-family: 'Zen Maru Gothic', sans-serif;
+        }
+        .mpPickerItem.active {
+          background: linear-gradient(180deg, #ffe08a, #ffbf4d); color: #3a2600; border-color: transparent;
+          box-shadow: 0 2px 10px rgba(255,190,80,0.4);
+        }
+        .mpGoBtnRow { display: flex; gap: 8px; margin-top: 4px; }
+        .mpGoBtn {
+          flex: 1; border: none; border-radius: 12px; padding: 11px; font-size: 14px; font-weight: 700;
+          font-family: 'Zen Maru Gothic', sans-serif; color: white;
+          background: linear-gradient(180deg, #7c8fff, #4f5fe0);
+        }
+        .mpGoBtn.back { background: linear-gradient(180deg, #ffb27c, #e06f4f); }
+        .mpGoBtn:disabled { opacity: 0.5; }
+      `}</style>
+
+      <div className="mpHeader">
+        <div className="mpStatusName">{currentPhase.name}</div>
+        <div className="mpSubtitle">{mode === 'overview' ? '俯瞰モード（宇宙視点）' : '地上視点モード'}</div>
+      </div>
+
+      <div className={`mpCanvasWrap ${mode === 'ground' ? 'ground' : ''}`}>
+        <div className="mpSunGlow" style={{ opacity: mode === 'overview' ? 1 : 0 }} />
+        <div className="mpCanvasMount" ref={mountRef} />
+        <div className="mpDepthLayer" style={{ background: depthGradient }} />
+
+        {mode === 'overview' && (
+          <div ref={observerLabelRef} className="mpLabel star">★</div>
+        )}
+
+        {mode === 'ground' && (
+          <div className="mpSkyArc">
+            {SKY_ARC.map((p, i) => (
+              <div
+                key={p.key}
+                className={`mpSkyArcDot ${skyArcActive && i === skyArcIndex ? 'active' : ''}`}
+                style={{ left: `${p.x}%`, top: `${p.y}%` }}
+              >
+                <span className="mpSkyArcLabel">{p.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {mode === 'ground' && !schematicVisible && (
+          <div className="mpNotVisible">
+            <div className="big">この場所からは見えない</div>
+            <div className="small">月は地平線の下にあります</div>
+          </div>
+        )}
+      </div>
+
+      <div className="mpPicker">
+        <div className="mpPickerRow">
+          <div className="mpPickerLabel">① 月の位置（月齢）</div>
+          <div className="mpPickerTrack">
+            {PHASES.map((p, i) => (
+              <button key={p.kana} disabled={animating}
+                className={`mpPickerItem ${i === phaseIndex ? 'active' : ''}`}
+                onClick={() => setPhaseIndex(i)}>
+                {p.kana} {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mpPickerRow">
+          <div className="mpPickerLabel">② 観測者の時刻</div>
+          <div className="mpPickerTrack">
+            {TIMES.map((t, i) => (
+              <button key={t} disabled={animating}
+                className={`mpPickerItem ${i === timeIndex ? 'active' : ''}`}
+                onClick={() => setTimeIndex(i)}>
+                {t}時
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mpGoBtnRow">
+          {mode === 'overview' ? (
+            <button className="mpGoBtn" disabled={animating} onClick={handleLookDown}>
+              この視点で見つめる（決定）
+            </button>
+          ) : (
+            <button className="mpGoBtn back" disabled={animating} onClick={handleBackToOverview}>
+              ← 全体図に戻る
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<MoonPhaseApp />);
+</script>
+</body>
+</html>
