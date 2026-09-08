@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>太さが一様でない棒のてこ問題</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+/* ============================================================
+   色（任意値Tailwindクラスはこの環境で無効なため、すべてinline style）
+   ============================================================ */
+const C = {
+  card: "#fdfcf8",
+  border: "#c7d0e0",
+  navy: "#1f3a63",
+  navyBtn: "#2b4c7e",
+  text: "#2d3340",
+  sub: "#6b7280",
+  red: "#b91c1c",
+  orange: "#c2410c",
+  blue: "#1d4ed8",
+  gray: "#9aa5b1",
+  black: "#111827",
+};
+
+const BAR_LEN = 50;
+const CG = 20;
+const cmToX = (cm) => 55 + (cm / BAR_LEN) * 300;
+
+/* 縦方向のレイアウト定数 */
+const CEIL_Y = 54; // 上部の見切れ防止のため下げた
+const BAR_TOP = 108;
+const BAR_BOT = 126;
+const SPRING_NAME_Y = 20; // 見切れ防止
+const SPRING_VALUE_Y = 41;
+
+function momentDir(posCm, pivotCm, isDown) {
+  const d = posCm - pivotCm;
+  if (d === 0) return null;
+  const s = Math.sign(d) * (isDown ? -1 : 1);
+  return s > 0 ? "cw" : "ccw";
+}
+
+/* ---------- 部品 ---------- */
+function Ceiling({ x, y }) {
+  return (
+    <g>
+      <line x1={x - 16} y1={y} x2={x + 16} y2={y} stroke="#5b6b82" strokeWidth="3" />
+      {[...Array(6)].map((_, i) => (
+        <line key={i} x1={x - 14 + i * 5.5} y1={y} x2={x - 18 + i * 5.5} y2={y + 7} stroke="#5b6b82" strokeWidth="1.6" />
+      ))}
+    </g>
+  );
+}
+
+function SpringUnit({ x, name, value, unresolved, blink }) {
+  const n = 7;
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const yy = CEIL_Y + ((BAR_TOP - CEIL_Y) * i) / n;
+    const xx = x + (i % 2 === 0 ? -8 : 8);
+    pts.push(`${xx},${yy}`);
+  }
+  return (
+    <g>
+      <text x={x} y={SPRING_NAME_Y} textAnchor="middle" fontSize="19" fontWeight="700" fill={C.navy} fontFamily="sans-serif">
+        {name}
+      </text>
+      <text
+        x={x}
+        y={SPRING_VALUE_Y}
+        textAnchor="middle"
+        fontSize="24"
+        fontWeight="800"
+        fill={unresolved ? C.red : C.navy}
+        fontFamily="sans-serif"
+        className={blink ? "blink-el" : ""}
+      >
+        {unresolved ? "？g" : `${value}g`}
+      </text>
+      <Ceiling x={x} y={CEIL_Y} />
+      <polyline points={pts.join(" ")} fill="none" stroke="#6b7280" strokeWidth="2.8" strokeLinecap="round" />
+    </g>
+  );
+}
+
+function WeightUnit({ x, label, value, unresolved, small, blink, hideValueText }) {
+  const w = small ? 26 : 36;
+  const h = small ? 17 : 28;
+  const topY = BAR_BOT + 16;
+  return (
+    <g>
+      <line x1={x} y1={BAR_BOT} x2={x} y2={topY} stroke="#374151" strokeWidth="1.6" />
+      <rect x={x - w / 2} y={topY} width={w} height={h} rx="3" fill={small ? "#cbd5e1" : "#9aa5b1"} stroke="#374151" strokeWidth="1.3" />
+      <text x={x} y={topY + h + 20} textAnchor="middle" fontSize="17" fontWeight="700" fill={C.navy} fontFamily="sans-serif">
+        {label}
+      </text>
+      {!hideValueText && (
+        <text
+          x={x}
+          y={topY + h / 2 + 6}
+          textAnchor="middle"
+          fontSize={small ? "14" : "18"}
+          fontWeight="800"
+          fill={unresolved ? C.red : "#1e293b"}
+          fontFamily="sans-serif"
+          className={blink ? "blink-el" : ""}
+        >
+          {unresolved ? "？" : `${value}g`}
+        </text>
+      )}
+    </g>
+  );
+}
+
+function Pivot({ x, blink }) {
+  return (
+    <g className={blink ? "blink-el" : ""}>
+      <polygon points={`${x - 13},${BAR_BOT + 28} ${x + 13},${BAR_BOT + 28} ${x},${BAR_BOT + 6}`} fill={C.red} />
+      <text x={x} y={BAR_BOT + 47} textAnchor="middle" fontSize="15" fontWeight="800" fill={C.red} fontFamily="sans-serif">
+        支点（O）
+      </text>
+    </g>
+  );
+}
+
+function PlainO({ x, y }) {
+  return (
+    <text x={x} y={y} textAnchor="middle" fontSize="20" fontWeight="800" fill={C.navy} fontFamily="sans-serif">
+      O
+    </text>
+  );
+}
+
+function DistanceBracket({ xa, xb, y, label, color = C.black }) {
+  const x1 = Math.min(xa, xb);
+  const x2 = Math.max(xa, xb);
+  return (
+    <g>
+      <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="1.5" />
+      <line x1={x1} y1={y - 6} x2={x1} y2={y + 6} stroke={color} strokeWidth="1.5" />
+      <line x1={x2} y1={y - 6} x2={x2} y2={y + 6} stroke={color} strokeWidth="1.5" />
+      <rect x={(x1 + x2) / 2 - 28} y={y - 14} width="56" height="20" fill={C.card} opacity="0.95" />
+      <text x={(x1 + x2) / 2} y={y + 2} textAnchor="middle" fontSize="16" fontWeight="800" fill={color} fontFamily="sans-serif">
+        {label}
+      </text>
+    </g>
+  );
+}
+
+function MomentArc({ x, y, dir, product }) {
+  const color = dir === "cw" ? C.orange : C.blue;
+  const flip = dir === "cw" ? -1 : 1;
+  return (
+    <g>
+      <g transform={`translate(${x},${y}) scale(${flip},1)`}>
+        <path d="M -13,-9 A 16 16 0 1 1 9,13" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" />
+        <polygon points="9,13 1,10 12,3" fill={color} />
+      </g>
+      <rect x={x - 46} y={y + 18} width="92" height="24" fill={C.card} opacity="0.95" />
+      <text x={x} y={y + 36} textAnchor="middle" fontSize="17" fontWeight="800" fill={color} fontFamily="sans-serif">
+        {product}
+      </text>
+    </g>
+  );
+}
+
+function VArrow({ x, y, down, color, label, big }) {
+  const len = big ? 28 : 24;
+  const y2 = down ? y + len : y - len;
+  const fs = big ? "17" : "14";
+  const labelY = down ? y2 + (big ? 24 : 17) : y2 - (big ? 19 : 13);
+  return (
+    <g>
+      <line x1={x} y1={y} x2={x} y2={y2} stroke={color} strokeWidth="2.8" />
+      <polygon points={down ? `${x - 7},${y2 - 10} ${x + 7},${y2 - 10} ${x},${y2}` : `${x - 7},${y2 + 10} ${x + 7},${y2 + 10} ${x},${y2}`} fill={color} />
+      <text x={x} y={labelY} textAnchor="middle" fontSize={fs} fontWeight="800" fill={color} fontFamily="sans-serif">
+        {label}
+      </text>
+    </g>
+  );
+}
+
+function Bar() {
+  const path = `M55,${BAR_TOP - 6} L355,${BAR_TOP + 7} L355,${BAR_BOT - 7} L55,${BAR_BOT + 6} Z`;
+  return <path d={path} fill="#2b4c7e" stroke="#1f3a63" strokeWidth="1.6" />;
+}
+
+/* ============================================================
+   問1の図　sub 0〜4
+   ============================================================ */
+function DiagramQ1({ sub }) {
+  if (sub === 0) {
+    return (
+      <svg viewBox="0 0 420 215" className="w-full">
+        <Bar />
+        <SpringUnit x={cmToX(CG)} name="ばねばかり" value={60} unresolved={false} />
+        <PlainO x={cmToX(CG)} y={150} />
+        <DistanceBracket xa={55} xb={cmToX(CG)} y={182} label="20cm" />
+        <DistanceBracket xa={cmToX(CG)} xb={355} y={182} label="30cm" />
+      </svg>
+    );
+  }
+  const xVal = sub >= 3 ? 40 : null;
+  const springVal = sub >= 4 ? 160 : null;
+  return (
+    <svg viewBox="0 0 420 270" className="w-full">
+      <Bar />
+      {/* 左端60gは既知のため、箱の中の数値表示は省略しラベルのみとする */}
+      <WeightUnit x={55} label="60g" value={60} unresolved={false} hideValueText />
+      <WeightUnit x={355} label="X" value={xVal} unresolved={xVal === null} blink={sub === 3} />
+      <SpringUnit x={cmToX(CG)} name="ばねばかり" value={springVal} unresolved={springVal === null} />
+      {sub >= 2 && <Pivot x={cmToX(CG)} blink={sub === 2} />}
+      {sub === 3 && (
+        <>
+          <DistanceBracket xa={55} xb={cmToX(CG)} y={228} label="20cm" />
+          <DistanceBracket xa={cmToX(CG)} xb={355} y={228} label="30cm" />
+          <MomentArc x={90} y={64} dir={momentDir(0, CG, true)} product="60×20＝1200" />
+          <MomentArc x={320} y={64} dir={momentDir(BAR_LEN, CG, true)} product="？×30＝1200" />
+        </>
+      )}
+      {sub === 4 && (
+        <>
+          <VArrow x={55} y={BAR_BOT + 40} down big color={C.orange} label="60g" />
+          <VArrow x={cmToX(CG) - 8} y={BAR_BOT + 40} down big color={C.orange} label="棒自身60g" />
+          <VArrow x={355} y={BAR_BOT + 40} down big color={C.orange} label="40g" />
+          <VArrow x={cmToX(CG) + 22} y={BAR_TOP - 6} color={C.blue} label="160g" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+/* ============================================================
+   問2の図　sub 0〜7
+   ============================================================ */
+function DiagramQ2({ sub, choice, firstDone, secondDone }) {
+  const yCm = BAR_LEN - 10;
+  const pivotCm = choice === "Y" ? BAR_LEN : yCm;
+  const yValue = choice === "Y" ? (firstDone ? 20 : null) : secondDone ? 20 : null;
+  const s2Value = choice === "Y" ? (secondDone ? 40 : null) : firstDone ? 40 : null;
+  const blinkFirst = sub === 5;
+  const blinkSecond = sub === 6;
+  const yBlink = (choice === "Y" && blinkFirst) || (choice === "spring2" && blinkSecond);
+  const s2Blink = (choice === "spring2" && blinkFirst) || (choice === "Y" && blinkSecond);
+  const showPivot = sub >= 2 && sub !== 6 && sub !== 7;
+
+  const points = [
+    { cm: CG, isDown: true, kind: "own", label: "棒自身60g", known: 60 },
+    { cm: yCm, isDown: true, kind: "Y", label: "Y", known: null },
+    { cm: 0, isDown: false, kind: "s1", label: "ばね①", known: 40 },
+    { cm: BAR_LEN, isDown: false, kind: "s2", label: "ばね②", known: null },
+  ].filter((p) => p.cm !== pivotCm);
+  const sortedPoints = [...points].sort((a, b) => Math.abs(pivotCm - a.cm) - Math.abs(pivotCm - b.cm));
+
+  const arcX = (p) => {
+    if (p.kind === "s1") return cmToX(p.cm) + 30;
+    if (p.kind === "s2") return cmToX(p.cm) - 30;
+    return cmToX(p.cm);
+  };
+
+  return (
+    <svg viewBox="0 0 420 290" className="w-full">
+      <Bar />
+      <SpringUnit x={cmToX(0)} name="ばね①" value={40} unresolved={false} />
+      <SpringUnit x={cmToX(BAR_LEN)} name="ばね②" value={s2Value} unresolved={s2Value === null} blink={s2Blink} />
+      <WeightUnit x={cmToX(yCm)} label="Y" value={yValue} unresolved={yValue === null} blink={yBlink} />
+      <g>
+        <line x1={cmToX(CG)} y1={BAR_TOP} x2={cmToX(CG)} y2={BAR_TOP - 10} stroke="#6b7280" strokeWidth="1.6" />
+        <text x={cmToX(CG)} y={BAR_TOP - 15} textAnchor="middle" fontSize="13" fontWeight="700" fill="#6b7280" fontFamily="sans-serif">
+          棒自身60g（O）
+        </text>
+      </g>
+
+      {/* 右端から10cmの位置は①②③で示す */}
+      {sub <= 2 && <DistanceBracket xa={cmToX(yCm)} xb={355} y={216} label="10cm" />}
+
+      {showPivot && <Pivot x={cmToX(pivotCm)} blink={sub === 2} />}
+
+      {sub === 3 &&
+        sortedPoints.map((p, i) => (
+          <DistanceBracket key={p.kind} xa={cmToX(pivotCm)} xb={cmToX(p.cm)} y={216 + i * 22} label={`${Math.abs(pivotCm - p.cm)}cm`} />
+        ))}
+
+      {sub === 4 &&
+        points.map((p) => {
+          const dir = momentDir(p.cm, pivotCm, p.isDown);
+          const dist = Math.abs(pivotCm - p.cm);
+          const val = p.known !== null ? p.known : p.kind === "Y" ? yValue : s2Value;
+          const text = val !== null ? `${val}×${dist}＝${val * dist}` : `${p.label}×${dist}`;
+          return <MomentArc key={p.kind} x={arcX(p)} y={64} dir={dir} product={text} />;
+        })}
+
+      {sub === 6 && (
+        <>
+          <VArrow x={cmToX(0) + 32} y={BAR_TOP - 8} color={C.blue} label="ばね①40g" />
+          <VArrow x={cmToX(BAR_LEN) - 36} y={BAR_TOP - 8} color={C.blue} label={s2Value !== null ? `ばね②${s2Value}g` : "ばね②？"} />
+          {/* 棒自身の重さはOの真下に配置 */}
+          <VArrow x={cmToX(CG)} y={BAR_BOT + 40} down color={C.orange} label="棒60g" />
+          {/* Yの重さはYの真下に配置（重さ表示を避けて低めに開始） */}
+          <VArrow x={cmToX(yCm)} y={214} down color={C.orange} label={yValue !== null ? `Y${yValue}g` : "Y？"} />
+        </>
+      )}
+    </svg>
+  );
+}
+
+/* ============================================================
+   問1：本文
+   ============================================================ */
+const Q1_TITLES = ["前提の確認", "問いの確認", "支点を決める", "回転させる力のつり合いの式", "重さのつり合いの式"];
+const Q1_BODIES = [
+  "太さが一様でない棒のある1点をばねばかりでつるすと、水平につり合いました。ばねばかりは60g、その点は左端から20cm・右端から30cmです。この点を「O」とします。\n\nつまり、Oが棒の重心です。",
+  "問題\n「左端に60g、右端に重さ不明のおもりXをつるし、Oの位置でばねばかりにつるすと水平につり合いました。\nXの重さとばねばかりの値を求めなさい」",
+  "点Oを支点として考えます。Oは棒の重心なので、棒自身の重さは回転させる力にはなりません。",
+  "左端のおもりは支点から反時計回りに、右端のおもりは時計回りに回そうとします。\n回転させる力（重さ×腕の長さ）は釣り合っているため、\n左　60×20＝1200\n右　X×30＝1200\nという式が成り立ち、X＝40gとなります。",
+  "全体の重さは\n60（左端おもり）＋\n60（棒自身）＋\n40（右端おもりX）\n＝160\nなので、ばねばかりの示す値は160gとなります（問1の解答おわり）。",
+];
+
+/* ============================================================
+   問2：本文
+   ============================================================ */
+function q2Content(choice) {
+  const firstName = choice === "Y" ? "Yの重さ" : "ばねばかり②の値";
+  const hiddenNameFull = choice === "Y" ? "ばねばかり②" : "おもりYの重さ";
+  const pivotName = choice === "Y" ? "ばねばかり②の位置（右端）" : "おもりYの位置（右端から10cm）";
+  const hiddenNameShort = choice === "Y" ? "バネばかり" : "おもり";
+  const eq = choice === "Y" ? "60×30＋Y×10＝40×50" : "60×20＋（ばねばかり②）×10＝40×40";
+  const calc = choice === "Y" ? "60×30＋Y×10＝40×50を解いてY＝20となります。" : "60×20＋（ばねばかり②）×10＝40×40を解いてばねばかり②＝40となります。";
+  const secondCalc =
+    choice === "Y"
+      ? "上向きの力（ばね①＋ばね②）＝下向きの力（棒60g＋Y）が成り立ちます。\n\n40＋ばねばかり②＝\n60＋20＝80なので、\nばねばかり②＝40gです。"
+      : "上向きの力（ばね①＋ばね②）＝下向きの力（棒60g＋Y）が成り立ちます。\n\n40＋40＝\n60＋Yより、\nYの重さ＝20gです。";
+  return { firstName, hiddenNameFull, pivotName, hiddenNameShort, eq, calc, secondCalc };
+}
+
+const Q2_TITLES = ["問いの確認", "どちらを先に求めるか選ぶ", "支点を決める", "支点からの距離を確認する", "回転させる力のつり合いの式", "計算する", "重さのつり合いの式", "まとめ"];
+
+/* ============================================================
+   本体
+   ============================================================ */
+const TOTAL_Q1 = 5;
+const TOTAL_Q2 = 8;
+const TOTAL = TOTAL_Q1 + TOTAL_Q2;
+const CARD_MIN_HEIGHT = 480;
+
+function btnStyle(kind) {
+  if (kind === "primary") return { background: C.navyBtn, color: "#ffffff", border: `1px solid ${C.navyBtn}` };
+  if (kind === "secondary") return { background: "#ffffff", color: C.navyBtn, border: `2px solid ${C.navyBtn}` };
+  return { background: "transparent", color: C.sub, border: "none" };
+}
+
+const CIRC = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨"];
+
+function App() {
+  const [current, setCurrent] = useState(-1);
+  const [maxVisited, setMaxVisited] = useState(-1);
+  const [choice, setChoice] = useState("Y");
+
+  const goTo = (idx) => {
+    setCurrent(idx);
+    if (idx > maxVisited) setMaxVisited(idx);
+  };
+  const start = () => goTo(0);
+  const next = () => current < TOTAL - 1 && goTo(current + 1);
+  const back = () => (current > 0 ? goTo(current - 1) : setCurrent(-1));
+  const restart = () => {
+    setCurrent(-1);
+    setMaxVisited(-1);
+    setChoice("Y");
+  };
+  const tryOther = () => {
+    setChoice(choice === "Y" ? "spring2" : "Y");
+    goTo(TOTAL_Q1 + 2);
+  };
+
+  const inQ1 = current >= 0 && current < TOTAL_Q1;
+  const inQ2 = current >= TOTAL_Q1;
+  const q2Sub = current - TOTAL_Q1;
+
+  let title = "",
+    body = "",
+    diagram = null,
+    showChoiceButtons = false;
+
+  if (inQ1) {
+    title = `問1-${CIRC[current]} ${Q1_TITLES[current]}`;
+    body = Q1_BODIES[current];
+    diagram = <DiagramQ1 sub={current} />;
+  } else if (inQ2) {
+    const cont = q2Content(choice);
+    title = `問2-${CIRC[q2Sub]} ${Q2_TITLES[q2Sub]}`;
+    if (q2Sub === 0) {
+      body =
+        "問題\n「ばねばかり②の値とYの重さを求めなさい。\n棒の左端をばね①、右端をばね②でつるし、右端から10cmの位置にYをつるすと水平につり合いました。ばね①は40g。棒自身の重さと重心の位置は問1と同じです。」";
+    } else if (q2Sub === 1) {
+      body = "未知数が2つあるときは、先に求める方を決めてから支点を選びます。タップしてください。";
+      showChoiceButtons = true;
+    } else if (q2Sub === 2) {
+      body = `${cont.firstName}を求めるため、${cont.pivotName}を支点にします。\n\n※テクニック：値が不明の${cont.hiddenNameShort}の位置を支点にすると解きやすくなる`;
+    } else if (q2Sub === 3) {
+      body = "支点から、棒自身の重心・Y・ばね①・ばね②までの距離を確認します。";
+    } else if (q2Sub === 4) {
+      body = `支点の左右で棒を回転させようとする力をそれぞれ計算すると、\n${cont.eq}\nという式になります。`;
+    } else if (q2Sub === 5) {
+      body = cont.calc;
+    } else if (q2Sub === 6) {
+      body = cont.secondCalc;
+    } else {
+      body = "Y＝20g、ばねばかり②＝40gと求まりました。支点の選び方を変えても同じ答えになります。";
+    }
+    diagram = <DiagramQ2 sub={q2Sub} choice={choice} firstDone={q2Sub >= 5} secondDone={q2Sub >= 6} />;
+  }
+
+  return (
+    <div
+      className="min-h-screen w-full flex justify-center py-6 px-3"
+      style={{
+        background:
+          "repeating-linear-gradient(0deg, #eef1f6 0, #eef1f6 23px, #dfe6ee 24px), repeating-linear-gradient(90deg, #eef1f6 0, #eef1f6 23px, #dfe6ee 24px)",
+        fontFamily: "'Shippori Mincho', serif",
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap');
+        @keyframes blinkAnim { 0%,100% { opacity: 1; } 50% { opacity: 0.15; } }
+        .blink-el { animation: blinkAnim 1s ease-in-out infinite; }
+      `}</style>
+
+      <div className="w-full max-w-md">
+        {current >= 0 && (
+          <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-3">
+            {Array.from({ length: TOTAL }).map((_, i) => {
+              const reachable = i <= maxVisited;
+              const isCurrent = i === current;
+              const style = {
+                minWidth: 28,
+                height: 28,
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 800,
+                flexShrink: 0,
+                fontFamily: "sans-serif",
+                background: isCurrent ? C.red : reachable ? C.navyBtn : "#e3e8ef",
+                color: isCurrent || reachable ? "#ffffff" : C.gray,
+                border: `1px solid ${isCurrent ? C.red : reachable ? C.navyBtn : "#d7dee8"}`,
+                cursor: reachable ? "pointer" : "default",
+              };
+              return (
+                <React.Fragment key={i}>
+                  {i === TOTAL_Q1 && <div style={{ width: 1, height: 20, background: C.border, margin: "0 2px", flexShrink: 0 }} />}
+                  <button disabled={!reachable} onClick={() => reachable && goTo(i)} style={style}>
+                    {i + 1}
+                  </button>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
+
+        <div
+          className="rounded-sm p-5 flex flex-col"
+          style={{ background: C.card, border: `1px solid ${C.border}`, minHeight: current >= 0 ? CARD_MIN_HEIGHT : "auto" }}
+        >
+          {current === -1 && (
+            <div className="text-center">
+              <div className="text-xs tracking-wide mb-2" style={{ color: C.gray }}>
+                てこ・力のつり合い
+              </div>
+              <h1 className="text-xl font-bold mb-4" style={{ color: C.navy }}>
+                太さが一様でない棒の
+                <br />
+                てこ問題
+              </h1>
+              <p className="text-sm leading-relaxed mb-5 text-left" style={{ color: C.text }}>
+                ①②③…の順に、問1・問2の解き方を確認します。問2では求めたい未知数を選べます。
+              </p>
+              <button onClick={start} className="px-6 py-2.5 rounded-sm text-sm font-bold" style={btnStyle("primary")}>
+                はじめる
+              </button>
+            </div>
+          )}
+
+          {current >= 0 && (
+            <div className="flex flex-col flex-1">
+              <div className="text-xs font-bold mb-1" style={{ color: C.sub }}>
+                {inQ1 ? "問1" : "問2"}
+              </div>
+              {diagram}
+              <h2 className="font-bold mt-3 mb-2 text-base" style={{ color: C.navy }}>
+                {title}
+              </h2>
+              <p className="text-sm leading-relaxed" style={{ color: C.text, whiteSpace: "pre-line" }}>
+                {body}
+              </p>
+
+              {showChoiceButtons && (
+                <div className="flex flex-col gap-2 mt-4">
+                  <button
+                    onClick={() => {
+                      setChoice("Y");
+                      next();
+                    }}
+                    className="px-4 py-2.5 rounded-sm text-sm font-bold"
+                    style={btnStyle("primary")}
+                  >
+                    おもりYの重さ から求める
+                  </button>
+                  <button
+                    onClick={() => {
+                      setChoice("spring2");
+                      next();
+                    }}
+                    className="px-4 py-2.5 rounded-sm text-sm font-bold"
+                    style={btnStyle("secondary")}
+                  >
+                    ばねばかり②の値 から求める
+                  </button>
+                </div>
+              )}
+
+              {inQ2 && q2Sub === 7 && (
+                <div className="flex flex-col gap-2 mt-4">
+                  <button onClick={tryOther} className="px-4 py-2.5 rounded-sm text-sm font-bold" style={btnStyle("secondary")}>
+                    もう一方の順番（{choice === "Y" ? "ばねばかり②から先に" : "Yの重さから先に"}）も試す
+                  </button>
+                  <button onClick={restart} className="text-xs underline mt-1" style={{ color: C.sub }}>
+                    はじめからやり直す
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {current >= 0 && !showChoiceButtons && (
+          <div className="flex justify-between mt-3">
+            <button onClick={back} className="px-4 py-2 text-sm font-bold" style={{ color: C.navyBtn, background: "transparent", border: "none" }}>
+              ← もどる
+            </button>
+            {current < TOTAL - 1 && (
+              <button onClick={next} className="px-5 py-2 rounded-sm text-sm font-bold" style={btnStyle("primary")}>
+                つぎへ →
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
