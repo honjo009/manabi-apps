@@ -19,7 +19,7 @@
 <body>
 <div id="root"></div>
 
-<script type="text/babel" data-presets="react">
+<script type="text/plain" id="app-source">
 const { useState, useRef, useMemo, useCallback } = React;
 
 // ---- Model constants -------------------------------------------------
@@ -392,6 +392,15 @@ const styles = {
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<EarthTimeExplorer />);
+</script>
+<script>
+  const sourceCode = document.getElementById("app-source").textContent;
+  const output = Babel.transform(sourceCode, {
+    presets: [["react", { runtime: "classic" }]],
+  }).code;
+  const runnable = document.createElement("script");
+  runnable.text = output;
+  document.body.appendChild(runnable);
 </script>
 </body>
 </html>
