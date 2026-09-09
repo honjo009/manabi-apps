@@ -289,6 +289,13 @@ function App() {
     });
     return map;
   }, [questionsByRegion]);
+  const resetAlbum = useCallback(() => {
+    setAlbumProgress({});
+    try {
+      window.localStorage.removeItem(ALBUM_STORAGE_KEY);
+    } catch (e) {
+    }
+  }, []);
   const saveAlbumProgress = useCallback((next) => {
     try {
       window.localStorage.setItem(ALBUM_STORAGE_KEY, JSON.stringify(next));
@@ -417,7 +424,7 @@ function App() {
       onRetry: startSession,
       onHome: () => setScreen("home")
     }
-  ), screen === "album" && /* @__PURE__ */ React.createElement(AlbumScreen, { albumProgress, loaded: albumLoaded }))));
+  ), screen === "album" && /* @__PURE__ */ React.createElement(AlbumScreen, { albumProgress, loaded: albumLoaded, onManage: () => setScreen("admin") }), screen === "admin" && /* @__PURE__ */ React.createElement(AdminScreen, { onReset: resetAlbum, onDone: () => setScreen("album") }))));
 }
 function HomeScreen({ onStart, onAlbum, scoreLog, loaded, poolCount, regions, regionQuestionCounts, selectedRegions, onToggleRegion, unlockedCardCount, totalCardCount }) {
   return /* @__PURE__ */ React.createElement("div", { className: "sans" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-5 mb-5" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold text-[#1F3A5F] mb-2" }, "\u51FA\u984C\u3059\u308B\u5730\u57DF"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mb-4" }, regions.map((r) => {
@@ -630,7 +637,7 @@ function ResultScreen({ results, total, award, onRetry, onHome }) {
   const fullScore = total > 0 && correct === total;
   return /* @__PURE__ */ React.createElement("div", { className: "sans text-center" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-6 mb-5" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-sm text-[#33507A] mb-2" }, "\u7D50\u679C"), /* @__PURE__ */ React.createElement("p", { className: "mincho text-4xl font-extrabold text-[#1F3A5F] mb-1" }, correct, " ", /* @__PURE__ */ React.createElement("span", { className: "text-lg font-normal text-[#33507A]" }, "/ ", total, "\u554F\u6B63\u89E3")), /* @__PURE__ */ React.createElement("div", { className: "flex justify-center gap-1 mt-3" }, results.map((r, i) => /* @__PURE__ */ React.createElement("span", { key: i, className: "inline-flex items-center justify-center w-6 h-6 rounded-full", style: { backgroundColor: r ? "#1F3A5F" : "#B7410E" } }, r ? /* @__PURE__ */ React.createElement(IconCheck, { size: 14, color: "#fff" }) : /* @__PURE__ */ React.createElement(IconX, { size: 14, color: "#fff" }))))), fullScore && award && /* @__PURE__ */ React.createElement("div", { className: "bg-white border-2 rounded-sm p-5 mb-5", style: { borderColor: "#B7410E" } }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold mb-2", style: { color: "#B7410E" } }, award.alreadyOwned ? `\u6E80\u70B9\u30DC\u30FC\u30CA\u30B9!${award.region.name}\u306F\u96C6\u3081\u7D42\u308F\u3063\u3066\u3044\u307E\u3059(\u30AB\u30FC\u30C9\u518D\u8868\u793A)` : `\u6E80\u70B9\u30DC\u30FC\u30CA\u30B9!${award.region.name}\u306E\u30AB\u30FC\u30C9\u7372\u5F97`), /* @__PURE__ */ React.createElement(CardImage, { src: award.card.image, alt: award.card.name, emoji: award.card.emoji, className: "w-32 h-32 rounded-sm mx-auto mb-2 border border-[#1F3A5F]/20 text-5xl" }), /* @__PURE__ */ React.createElement("p", { className: "mincho text-base font-bold text-[#1F3A5F] mb-1" }, award.card.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed" }, award.card.desc), award.specialCard && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t", style: { borderColor: "rgba(183,65,14,0.3)" } }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-xs font-bold mb-2", style: { color: "#B7410E" } }, award.region.name, "\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8!\u7279\u5225\u30DC\u30FC\u30CA\u30B9"), /* @__PURE__ */ React.createElement(CardImage, { src: award.specialCard.image, alt: award.specialCard.name, emoji: award.specialCard.emoji, className: "w-32 h-32 rounded-sm mx-auto mb-2 border border-[#1F3A5F]/20 text-5xl" }), /* @__PURE__ */ React.createElement("p", { className: "mincho text-base font-bold text-[#1F3A5F] mb-1" }, award.specialCard.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed" }, award.specialCard.desc))), !fullScore && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-[#33507A]/70 mb-5" }, "10\u554F\u5168\u554F\u6B63\u89E3\u3067\u3001\u51FA\u984C\u3055\u308C\u305F\u5730\u57DF\u306E\u30AB\u30FC\u30C9\u304C\u3082\u3089\u3048\u307E\u3059\u3002\u6B21\u306F\u6E80\u70B9\u3092\u72D9\u3063\u3066\u307F\u307E\u3057\u3087\u3046\u3002"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: onHome, className: "flex-1 mincho font-bold py-3 rounded-sm border-2 border-[#1F3A5F] text-[#1F3A5F]" }, "\u30DB\u30FC\u30E0\u3078"), /* @__PURE__ */ React.createElement("button", { onClick: onRetry, className: "flex-1 flex items-center justify-center gap-1 mincho font-bold py-3 rounded-sm text-white", style: { backgroundColor: "#1F3A5F" } }, /* @__PURE__ */ React.createElement(IconRotateCcw, { size: 16 }), " \u3082\u3046\u4E00\u5EA6")));
 }
-function AlbumScreen({ albumProgress, loaded }) {
+function AlbumScreen({ albumProgress, loaded, onManage }) {
   if (!loaded) {
     return /* @__PURE__ */ React.createElement("div", { className: "sans text-center text-sm text-[#33507A] bg-white/70 border border-[#1F3A5F]/30 rounded-sm p-6" }, "\u8AAD\u307F\u8FBC\u307F\u4E2D...");
   }
@@ -657,7 +664,31 @@ function AlbumScreen({ albumProgress, loaded }) {
       state.specialUnlocked ? /* @__PURE__ */ React.createElement(CardImage, { src: region.specialCard.image, alt: region.specialCard.name, emoji: region.specialCard.emoji, className: "w-full aspect-square rounded-sm mb-1 text-3xl" }) : /* @__PURE__ */ React.createElement("div", { className: "w-full aspect-square flex items-center justify-center rounded-sm mb-1 text-3xl", style: { filter: "grayscale(100%)" } }, "\u{1F381}"),
       /* @__PURE__ */ React.createElement("div", { className: "text-[10px] leading-tight text-[#1F3A5F]" }, state.specialUnlocked ? region.specialCard.name : "\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u7279\u5178")
     )));
-  }));
+  }), /* @__PURE__ */ React.createElement("div", { className: "text-center pt-2" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: onManage,
+      className: "text-xs text-[#8B8FA3] underline underline-offset-2"
+    },
+    "\u7BA1\u7406"
+  )));
+}
+function AdminScreen({ onReset, onDone }) {
+  const [done, setDone] = useState(false);
+  return /* @__PURE__ */ React.createElement("div", { className: "sans" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white/80 border border-[#1F3A5F]/30 rounded-sm p-5" }, /* @__PURE__ */ React.createElement("p", { className: "mincho text-sm font-bold text-[#1F3A5F] mb-3" }, "\u30A2\u30EB\u30D0\u30E0\u30EA\u30BB\u30C3\u30C8"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-[#33507A] leading-relaxed mb-4" }, "\u30EA\u30BB\u30C3\u30C8\u3059\u308B\u3068\u3001\u3053\u308C\u307E\u3067\u306B\u7372\u5F97\u3057\u305F\u3059\u3079\u3066\u306E\u90FD\u9053\u5E9C\u770C\u30AB\u30FC\u30C9\u30FB\u7279\u5225\u30AB\u30FC\u30C9\u306E\u8A18\u9332\u304C\u6D88\u3048\u3001\u6700\u521D\u306E\u72B6\u614B\u306B\u623B\u308A\u307E\u3059\u3002\u3053\u306E\u64CD\u4F5C\u306F\u5143\u306B\u623B\u305B\u307E\u305B\u3093\u3002"), done ? /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold", style: { color: "#B7410E" } }, "\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3057\u305F\u3002") : /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => {
+        if (window.confirm("\u672C\u5F53\u306B\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3059\u304B?")) {
+          onReset();
+          setDone(true);
+        }
+      },
+      className: "w-full mincho font-bold py-3 rounded-sm text-white",
+      style: { backgroundColor: "#B7410E" }
+    },
+    "\u30A2\u30EB\u30D0\u30E0\u30EA\u30BB\u30C3\u30C8"
+  )));
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
