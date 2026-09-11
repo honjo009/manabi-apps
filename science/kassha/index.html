@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>THE 夜も滑車もヒッパレ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #FBF7EE; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #FF7A00;
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #FF7A00;
+    cursor: pointer;
+    border: none;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+
+const PAPER = "#FBF7EE";
+const INK = "#2B2B2E";
+const INK_SOFT = "#6b6a63";
+const RED = "#C0392B";
+const NAVY = "#1F3A5F";
+const LINE = "#d8d2c2";
+const SLIDER_COLOR = "#FF7A00";
+const SCALE = 5;
+
+/* ---------------------------------------------------------
+   図1: 動滑車(天井から糸で吊るすタイプ)
+   紐を引いた長さの半分だけおもりが上がる
+--------------------------------------------------------- */
+function DoukasshaTsuriSage() {
+  const [pulledCm, setPulledCm] = useState(0);
+
+  const CEIL_Y = 45;
+  const HAND_Y = 45;
+  const LEFT_X = 175;
+  const RIGHT_X = 285;
+  const CENTER_X = 230;
+  const BASE_ASSEMBLY_Y = 175;
+  const MARGIN = 15;
+  const MAX_RISE_PX = BASE_ASSEMBLY_Y - CEIL_Y - MARGIN;
+  const MAX_PULLED_CM = Math.floor((MAX_RISE_PX / SCALE) * 2);
+
+  const weightMoveCm = pulledCm / 2;
+  const riseRaw = weightMoveCm * SCALE;
+  const rise = Math.min(riseRaw, MAX_RISE_PX);
+
+  const assemblyY = BASE_ASSEMBLY_Y - rise;
+
+  const progress = MAX_RISE_PX > 0 ? rise / MAX_RISE_PX : 0;
+  const HAND_START_Y = BASE_ASSEMBLY_Y - 50;
+  const handY = HAND_START_Y - progress * (HAND_START_Y - HAND_Y);
+
+  const weightTopY = assemblyY + 65;
+  const weightBottomY = weightTopY + 40;
+
+  const displayWeightMove = useMemo(() => {
+    const v = pulledCm / 2;
+    return Number.isInteger(v) ? v : v.toFixed(1);
+  }, [pulledCm]);
+
+  return (
+    <div>
+      <header className="mb-2">
+        <div className="h-px" style={{ background: LINE }} />
+      </header>
+
+      <div className="rounded-xl border p-2 mb-2" style={{ borderColor: LINE, background: "white" }}>
+        <div className="flex">
+          <div className="flex-1">
+            <svg viewBox="0 0 400 370" className="w-full h-auto select-none">
+              <rect x="90" y="25" width="220" height="20" fill={PAPER} stroke={INK} strokeWidth="2" />
+              <g stroke={INK} strokeWidth="1.2">
+                {Array.from({ length: 9 }).map((_, i) => {
+                  const x0 = 100 + i * 25;
+                  return <line key={i} x1={x0} y1={45} x2={x0 - 14} y2={58} />;
+                })}
+              </g>
+
+              <line x1={LEFT_X} y1={CEIL_Y} x2={LEFT_X} y2={assemblyY} stroke={INK} strokeWidth="2" />
+              <circle cx={LEFT_X} cy={CEIL_Y} r="4" fill={INK} />
+
+              <line x1={RIGHT_X} y1={handY} x2={RIGHT_X} y2={assemblyY} stroke={INK} strokeWidth="2" />
+              <text x={RIGHT_X} y={handY - 8} fontSize="30" textAnchor="middle">🤛</text>
+
+              <g>
+                <line x1={LEFT_X - 30} y1={assemblyY} x2={LEFT_X - 30} y2={assemblyY - 16} stroke={NAVY} strokeWidth="2.5" />
+                <polygon points={`${LEFT_X - 30},${assemblyY - 30} ${LEFT_X - 40},${assemblyY - 16} ${LEFT_X - 20},${assemblyY - 16}`} fill={NAVY} />
+                <text x={LEFT_X - 30} y={assemblyY - 38} fontSize="16" fill={NAVY} fontWeight="700" textAnchor="middle">60g</text>
+              </g>
+
+              <g>
+                <line x1={RIGHT_X + 30} y1={assemblyY} x2={RIGHT_X + 30} y2={assemblyY - 16} stroke={NAVY} strokeWidth="2.5" />
+                <polygon points={`${RIGHT_X + 30},${assemblyY - 30} ${RIGHT_X + 20},${assemblyY - 16} ${RIGHT_X + 40},${assemblyY - 16}`} fill={NAVY} />
+                <text x={RIGHT_X + 30} y={assemblyY - 38} fontSize="16" fill={NAVY} fontWeight="700" textAnchor="middle">60g</text>
+              </g>
+
+              <g>
+                <line x1={CENTER_X - 34} y1={weightBottomY + 5} x2={CENTER_X - 34} y2={weightBottomY + 38} stroke={RED} strokeWidth="2.5" />
+                <polygon points={`${CENTER_X - 34},${weightBottomY + 52} ${CENTER_X - 44},${weightBottomY + 38} ${CENTER_X - 24},${weightBottomY + 38}`} fill={RED} />
+                <text x={CENTER_X - 34} y={weightBottomY + 70} fontSize="16" fill={RED} fontWeight="700" textAnchor="middle">120g</text>
+              </g>
+
+              <circle cx={CENTER_X} cy={assemblyY} r="55" fill="white" fillOpacity="0" stroke={INK} strokeWidth="2.5" />
+              <path d={`M${LEFT_X},${assemblyY} A55,55 0 0,1 ${RIGHT_X},${assemblyY}`} fill="none" stroke={INK} strokeWidth="2" />
+              <circle cx={LEFT_X} cy={assemblyY} r="5" fill={INK} />
+              <circle cx={RIGHT_X} cy={assemblyY} r="5" fill={INK} />
+
+              <rect x={CENTER_X - 10} y={assemblyY} width="20" height="55" fill="white" stroke={INK} strokeWidth="2" />
+              <line x1={CENTER_X} y1={assemblyY + 55} x2={CENTER_X} y2={weightTopY} stroke={INK} strokeWidth="2" />
+
+              <rect x={CENTER_X - 24} y={weightTopY} width="48" height="40" fill={INK} />
+              <text x={CENTER_X + 34} y={weightTopY + 26} fontSize="16" fill={INK} fontWeight="700">120g</text>
+
+              <line x1="60" y1={BASE_ASSEMBLY_Y + 65 + 40} x2="340" y2={BASE_ASSEMBLY_Y + 65 + 40} stroke={INK_SOFT} strokeWidth="1" strokeDasharray="4 4" />
+
+              {rise > 2 && (
+                <g>
+                  <line x1="60" y1={BASE_ASSEMBLY_Y + 65 + 40} x2="60" y2={weightBottomY} stroke={NAVY} strokeWidth="2" />
+                  <line x1="52" y1={weightBottomY} x2="68" y2={weightBottomY} stroke={NAVY} strokeWidth="2" />
+                  <line x1="52" y1={BASE_ASSEMBLY_Y + 65 + 40} x2="68" y2={BASE_ASSEMBLY_Y + 65 + 40} stroke={NAVY} strokeWidth="2" />
+                </g>
+              )}
+            </svg>
+          </div>
+
+          <div className="flex flex-col items-center justify-center w-16 pl-1">
+            <span className="text-xs mb-1" style={{ color: SLIDER_COLOR }}>引く</span>
+            <div style={{ height: "220px", display: "flex", alignItems: "center", justifyContent: "center", touchAction: "none" }}>
+              <input
+                type="range"
+                min="0"
+                max={MAX_PULLED_CM}
+                step="1"
+                value={pulledCm}
+                onChange={(e) => setPulledCm(Number(e.target.value))}
+                style={{ width: "140px", transform: "rotate(-90deg)", accentColor: SLIDER_COLOR, touchAction: "none" }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mt-2">
+        <div className="rounded-xl border p-3" style={{ borderColor: LINE, background: "white" }}>
+          <p className="text-xs" style={{ color: INK_SOFT }}>おもりの移動距離</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: NAVY }}>{displayWeightMove} cm</p>
+        </div>
+        <div className="rounded-xl border p-3" style={{ borderColor: LINE, background: "white" }}>
+          <p className="text-xs" style={{ color: INK_SOFT }}>引いた紐の長さ</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: RED }}>{pulledCm} cm</p>
+        </div>
+      </div>
+
+      <p className="text-xs text-center mt-2" style={{ color: INK_SOFT }}>
+        動滑車は糸2本で支えているので、紐を引いた長さの半分だけおもりが上がります。
+      </p>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------
+   図2: 定滑車(軸が天井に固定、1:1で動く)
+--------------------------------------------------------- */
+function TeikasshaTsuriSage() {
+  const [pulledCm, setPulledCm] = useState(0);
+
+  const CEIL_Y = 45;
+  const PULLEY_Y = 155;
+  const LEFT_X = 175;
+  const RIGHT_X = 285;
+  const CENTER_X = 230;
+
+  const INITIAL_LEFT_SEG = 110;
+  const INITIAL_RIGHT_SEG = 40;
+  const MARGIN = 15;
+  const MAX_RISE_PX = INITIAL_LEFT_SEG - MARGIN;
+  const MAX_PULLED_CM = Math.floor(MAX_RISE_PX / SCALE);
+
+  const riseRaw = pulledCm * SCALE;
+  const rise = Math.min(riseRaw, MAX_RISE_PX);
+
+  const leftSegLen = INITIAL_LEFT_SEG - rise;
+  const rightSegLen = INITIAL_RIGHT_SEG + rise;
+
+  const weightCenterY = PULLEY_Y + leftSegLen;
+  const weightTopY = weightCenterY - 20;
+  const weightBottomY = weightCenterY + 20;
+  const handY = PULLEY_Y + rightSegLen;
+
+  const displayWeightMove = useMemo(() => {
+    return Number.isInteger(rise / SCALE) ? rise / SCALE : (rise / SCALE).toFixed(1);
+  }, [rise]);
+
+  return (
+    <div>
+      <header className="mb-2">
+        <div className="h-px" style={{ background: LINE }} />
+      </header>
+
+      <div className="rounded-xl border p-2 mb-2" style={{ borderColor: LINE, background: "white" }}>
+        <div className="flex">
+          <div className="flex-1">
+            <svg viewBox="0 0 400 330" className="w-full h-auto select-none">
+              <rect x="90" y="25" width="220" height="20" fill={PAPER} stroke={INK} strokeWidth="2" />
+              <g stroke={INK} strokeWidth="1.2">
+                {Array.from({ length: 9 }).map((_, i) => {
+                  const x0 = 100 + i * 25;
+                  return <line key={i} x1={x0} y1={45} x2={x0 - 14} y2={58} />;
+                })}
+              </g>
+
+              <line x1={CENTER_X} y1={CEIL_Y} x2={CENTER_X} y2={PULLEY_Y - 35} stroke={INK} strokeWidth="2" />
+
+              <line x1={LEFT_X} y1={PULLEY_Y} x2={LEFT_X} y2={weightCenterY} stroke={INK} strokeWidth="2" />
+
+              <line x1={RIGHT_X} y1={PULLEY_Y} x2={RIGHT_X} y2={handY} stroke={INK} strokeWidth="2" />
+              <text x={RIGHT_X} y={handY + 32} fontSize="30" textAnchor="middle">🤛</text>
+
+              <g>
+                <line x1={LEFT_X - 30} y1={PULLEY_Y + 20} x2={LEFT_X - 30} y2={PULLEY_Y + 64} stroke={RED} strokeWidth="2.5" />
+                <polygon points={`${LEFT_X - 30},${PULLEY_Y + 80} ${LEFT_X - 40},${PULLEY_Y + 64} ${LEFT_X - 20},${PULLEY_Y + 64}`} fill={RED} />
+                <text x={LEFT_X - 30} y={PULLEY_Y + 100} fontSize="16" fill={RED} fontWeight="700" textAnchor="middle">120g</text>
+              </g>
+
+              <g>
+                <line x1={RIGHT_X + 30} y1={PULLEY_Y + 20} x2={RIGHT_X + 30} y2={PULLEY_Y + 64} stroke={RED} strokeWidth="2.5" />
+                <polygon points={`${RIGHT_X + 30},${PULLEY_Y + 80} ${RIGHT_X + 20},${PULLEY_Y + 64} ${RIGHT_X + 40},${PULLEY_Y + 64}`} fill={RED} />
+                <text x={RIGHT_X + 30} y={PULLEY_Y + 100} fontSize="16" fill={RED} fontWeight="700" textAnchor="middle">120g</text>
+              </g>
+
+              <circle cx={CENTER_X} cy={PULLEY_Y} r="55" fill="white" fillOpacity="0" stroke={INK} strokeWidth="2.5" />
+              <path d={`M${LEFT_X},${PULLEY_Y} A55,55 0 0,1 ${RIGHT_X},${PULLEY_Y}`} fill="none" stroke={INK} strokeWidth="2" />
+              <circle cx={LEFT_X} cy={PULLEY_Y} r="5" fill={INK} />
+              <circle cx={RIGHT_X} cy={PULLEY_Y} r="5" fill={INK} />
+
+              <rect x={CENTER_X - 10} y={PULLEY_Y - 35} width="20" height="35" fill="white" stroke={INK} strokeWidth="2" />
+              <circle cx={CENTER_X} cy={PULLEY_Y} r="4" fill={INK} />
+
+              <rect x={LEFT_X - 24} y={weightTopY} width="48" height="40" fill={INK} />
+              <text x={LEFT_X} y={weightBottomY + 22} fontSize="16" fill={INK} fontWeight="700" textAnchor="middle">120g</text>
+
+              <line x1="60" y1={PULLEY_Y + INITIAL_LEFT_SEG + 40} x2="340" y2={PULLEY_Y + INITIAL_LEFT_SEG + 40} stroke={INK_SOFT} strokeWidth="1" strokeDasharray="4 4" />
+
+              {rise > 2 && (
+                <g>
+                  <line x1="60" y1={PULLEY_Y + INITIAL_LEFT_SEG + 40} x2="60" y2={weightBottomY} stroke={NAVY} strokeWidth="2" />
+                  <line x1="52" y1={weightBottomY} x2="68" y2={weightBottomY} stroke={NAVY} strokeWidth="2" />
+                  <line x1="52" y1={PULLEY_Y + INITIAL_LEFT_SEG + 40} x2="68" y2={PULLEY_Y + INITIAL_LEFT_SEG + 40} stroke={NAVY} strokeWidth="2" />
+                </g>
+              )}
+            </svg>
+          </div>
+
+          <div className="flex flex-col items-center justify-center w-16 pl-1">
+            <div style={{ height: "200px", display: "flex", alignItems: "center", justifyContent: "center", touchAction: "none" }}>
+              <input
+                type="range"
+                min="0"
+                max={MAX_PULLED_CM}
+                step="1"
+                value={pulledCm}
+                onChange={(e) => setPulledCm(Number(e.target.value))}
+                style={{ width: "130px", transform: "rotate(90deg)", accentColor: SLIDER_COLOR, touchAction: "none" }}
+              />
+            </div>
+            <span className="text-xs mt-1" style={{ color: SLIDER_COLOR }}>↓引く</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mt-2">
+        <div className="rounded-xl border p-3" style={{ borderColor: LINE, background: "white" }}>
+          <p className="text-xs" style={{ color: INK_SOFT }}>おもりの移動距離</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: NAVY }}>{displayWeightMove} cm</p>
+        </div>
+        <div className="rounded-xl border p-3" style={{ borderColor: LINE, background: "white" }}>
+          <p className="text-xs" style={{ color: INK_SOFT }}>引いた紐の長さ</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: SLIDER_COLOR }}>{pulledCm} cm</p>
+        </div>
+      </div>
+
+      <p className="text-xs text-center mt-2" style={{ color: INK_SOFT }}>
+        定滑車は向きを変えるだけなので、紐を引いた長さとおもりが上がる距離は同じ(1:1)です。
+      </p>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------
+   図3: 動滑車(地面に固定タイプ、軸を持ち上げる)
+--------------------------------------------------------- */
+function DoukasshaJimenKotei() {
+  const [liftCm, setLiftCm] = useState(0);
+
+  const GROUND_Y = 340;
+  const LEFT_X = 175;
+  const RIGHT_X = 285;
+  const CENTER_X = 230;
+
+  const H0_PX = 160;
+  const MAX_RISE_PX = 45;
+  const MAX_LIFT_CM = Math.floor(MAX_RISE_PX / SCALE);
+
+  const riseRaw = liftCm * SCALE;
+  const rise = Math.min(riseRaw, MAX_RISE_PX);
+
+  const hPx = H0_PX + rise;
+  const wPx = 2 * rise;
+
+  const AXLE_Y = GROUND_Y - hPx;
+  const weightBottomY = GROUND_Y - wPx;
+  const weightTopY = weightBottomY - 40;
+  const weightCenterY = weightBottomY - 20;
+
+  const displayWeightMove = useMemo(() => {
+    const v = wPx / SCALE;
+    return Number.isInteger(v) ? v : v.toFixed(1);
+  }, [wPx]);
+
+  return (
+    <div>
+      <header className="mb-2">
+        <div className="h-px" style={{ background: LINE }} />
+      </header>
+
+      <div className="rounded-xl border p-2 mb-2" style={{ borderColor: LINE, background: "white" }}>
+        <div className="flex">
+          <div className="flex-1">
+            <svg viewBox="0 0 400 360" className="w-full h-auto select-none">
+              <line x1={CENTER_X} y1={AXLE_Y - 53} x2={CENTER_X} y2={AXLE_Y} stroke={INK} strokeWidth="2.5" />
+              <text x={CENTER_X} y={AXLE_Y - 57} fontSize="34" textAnchor="middle">🤛</text>
+
+              <g>
+                <line x1={CENTER_X + 60} y1={AXLE_Y - 30} x2={CENTER_X + 60} y2={AXLE_Y - 85} stroke={NAVY} strokeWidth="2.5" />
+                <polygon points={`${CENTER_X + 60},${AXLE_Y - 98} ${CENTER_X + 50},${AXLE_Y - 85} ${CENTER_X + 70},${AXLE_Y - 85}`} fill={NAVY} />
+                <text x={CENTER_X + 60} y={AXLE_Y - 102} fontSize="16" fill={NAVY} fontWeight="700" textAnchor="middle">240g</text>
+              </g>
+
+              <circle cx={CENTER_X} cy={AXLE_Y} r="55" fill="white" fillOpacity="0" stroke={INK} strokeWidth="2.5" />
+              <path d={`M${LEFT_X},${AXLE_Y} A55,55 0 0,1 ${RIGHT_X},${AXLE_Y}`} fill="none" stroke={INK} strokeWidth="2" />
+              <circle cx={LEFT_X} cy={AXLE_Y} r="5" fill={INK} />
+              <circle cx={RIGHT_X} cy={AXLE_Y} r="5" fill={INK} />
+              <circle cx={CENTER_X} cy={AXLE_Y} r="4" fill={INK} />
+
+              <g>
+                <line x1={LEFT_X - 30} y1={AXLE_Y + 12} x2={LEFT_X - 30} y2={AXLE_Y + 35} stroke={RED} strokeWidth="2.5" />
+                <polygon points={`${LEFT_X - 30},${AXLE_Y + 48} ${LEFT_X - 40},${AXLE_Y + 35} ${LEFT_X - 20},${AXLE_Y + 35}`} fill={RED} />
+                <text x={LEFT_X - 30} y={AXLE_Y + 64} fontSize="16" fill={RED} fontWeight="700" textAnchor="middle">120g</text>
+              </g>
+
+              <g>
+                <line x1={RIGHT_X + 30} y1={AXLE_Y + 12} x2={RIGHT_X + 30} y2={AXLE_Y + 35} stroke={RED} strokeWidth="2.5" />
+                <polygon points={`${RIGHT_X + 30},${AXLE_Y + 48} ${RIGHT_X + 20},${AXLE_Y + 35} ${RIGHT_X + 40},${AXLE_Y + 35}`} fill={RED} />
+                <text x={RIGHT_X + 30} y={AXLE_Y + 64} fontSize="16" fill={RED} fontWeight="700" textAnchor="middle">120g</text>
+              </g>
+
+              <line x1={LEFT_X} y1={AXLE_Y} x2={LEFT_X} y2={GROUND_Y} stroke={INK} strokeWidth="2" />
+
+              <line x1={RIGHT_X} y1={AXLE_Y} x2={RIGHT_X} y2={weightCenterY} stroke={INK} strokeWidth="2" />
+
+              <rect x={RIGHT_X - 24} y={weightTopY} width="48" height="40" fill={INK} />
+              <text x={RIGHT_X} y={weightBottomY + 22} fontSize="16" fill={INK} fontWeight="700" textAnchor="middle">120g</text>
+
+              <line x1="60" y1={GROUND_Y} x2="330" y2={GROUND_Y} stroke={INK} strokeWidth="2" />
+              <g stroke={INK} strokeWidth="1.2">
+                {Array.from({ length: 13 }).map((_, i) => {
+                  const x0 = 70 + i * 20;
+                  return <line key={i} x1={x0} y1={GROUND_Y} x2={x0 - 14} y2={GROUND_Y + 20} />;
+                })}
+              </g>
+            </svg>
+          </div>
+
+          <div className="flex flex-col items-center justify-center w-16 pl-1">
+            <span className="text-xs mb-1" style={{ color: SLIDER_COLOR }}>引く↑</span>
+            <div style={{ height: "200px", display: "flex", alignItems: "center", justifyContent: "center", touchAction: "none" }}>
+              <input
+                type="range"
+                min="0"
+                max={MAX_LIFT_CM}
+                step="1"
+                value={liftCm}
+                onChange={(e) => setLiftCm(Number(e.target.value))}
+                style={{ width: "130px", transform: "rotate(-90deg)", accentColor: SLIDER_COLOR, touchAction: "none" }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mt-2">
+        <div className="rounded-xl border p-3" style={{ borderColor: LINE, background: "white" }}>
+          <p className="text-xs" style={{ color: INK_SOFT }}>おもりの移動距離</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: NAVY }}>{displayWeightMove} cm</p>
+        </div>
+        <div className="rounded-xl border p-3" style={{ borderColor: LINE, background: "white" }}>
+          <p className="text-xs" style={{ color: INK_SOFT }}>手が持ち上げた距離</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: SLIDER_COLOR }}>{liftCm} cm</p>
+        </div>
+      </div>
+
+      <p className="text-xs text-center mt-2" style={{ color: INK_SOFT }}>
+        この動滑車は力が2倍(240g)必要な代わりに、手を持ち上げる距離はおもりが上がる距離の半分で済みます。
+      </p>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------
+   図4: 複合滑車(動滑車A・動滑車B・定滑車を組み合わせたもの)
+   画面1:動滑車Bの力 / 画面2:動滑車Aの力を追加 / 画面3:定滑車の力を追加+スライダー
+--------------------------------------------------------- */
+function ForceArrow({ x, yStart, yEnd, color, label, labelSide = "right" }) {
+  const up = yEnd < yStart;
+  const tipY = up ? yEnd - 9 : yEnd + 9;
+  const headTop = up
+    ? `${x - 7},${yEnd + 6} ${x + 7},${yEnd + 6}`
+    : `${x - 7},${yEnd - 6} ${x + 7},${yEnd - 6}`;
+  const labelX = labelSide === "right" ? x + 10 : x - 40;
+  const labelY = (yStart + yEnd) / 2 + 5;
+  return (
+    <g>
+      <line x1={x} y1={yStart} x2={x} y2={yEnd} stroke={color} strokeWidth="3.5" />
+      <polygon points={`${x},${tipY} ${headTop}`} fill={color} />
+      <text x={labelX} y={labelY} fontSize="15" fontWeight="bold" fill={color}>
+        {label}
+      </text>
+    </g>
+  );
+}
+
+function ValueBox({ label, value }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        border: "1px solid #ccc",
+        borderRadius: 8,
+        padding: "6px 6px",
+        textAlign: "center",
+        background: "#fff",
+      }}
+    >
+      <div style={{ fontSize: 11, color: "#666", marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: "bold", color: "#1a237e" }}>
+        {value.toFixed(1)}cm
+      </div>
+    </div>
+  );
+}
+
+function PulleyApp() {
+  // このコンポーネント専用の色・座標定数(他アプリの同名定数とは独立)
+  const P_RED = "#c62828";
+  const P_NAVY = "#1a237e";
+  const P_INK = "#222222";
+  const FORCE_SCALE = 0.5;
+
+  const CEIL_Y = 48;
+  const DEF_CY = 102;
+  const A_REST_CY = 262;
+  const B_REST_CY = 382;
+  const HAND_REST_Y = 250;
+  const S_MAX = 100;
+
+  const [screen, setScreen] = useState(1);
+  const [hasWeight, setHasWeight] = useState(false);
+  const [pulled, setPulled] = useState(0);
+
+  const B_LOAD = 120;
+  const B_SELF = hasWeight ? 30 : 0;
+  const B = { down: B_LOAD + B_SELF, side: (B_LOAD + B_SELF) / 2 };
+  const bDownLabel = hasWeight ? `${B.down}g（${B_LOAD}g+${B_SELF}g）` : `${B.down}g`;
+
+  const A_LOAD = B.side;
+  const A_SELF = hasWeight ? 25 : 0;
+  const A = { down: A_LOAD + A_SELF, side: (A_LOAD + A_SELF) / 2 };
+  const aDownLabel = hasWeight ? `${A.down}g（${A_LOAD}g+${A_SELF}g）` : `${A.down}g`;
+
+  const F = { side: A.side, center: A.side * 2 };
+
+  const S = screen === 3 ? pulled : 0;
+  const aMove = S / 2;
+  const bMove = S / 4;
+
+  const A_CY = A_REST_CY - aMove;
+  const B_CY = B_REST_CY - bMove;
+  const handRopeEnd = HAND_REST_Y + S;
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 6 }}>
+        {[1, 2, 3].map((n) => (
+          <button
+            key={n}
+            onClick={() => setScreen(n)}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              border: screen === n ? "2px solid #1a237e" : "1px solid #ccc",
+              background: screen === n ? "#1a237e" : "#fff",
+              color: screen === n ? "#fff" : "#333",
+              fontSize: 16,
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <svg viewBox="0 0 500 560" style={{ width: "100%", height: "auto", flex: 1 }}>
+          <defs>
+            <pattern id="hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#555" strokeWidth="1.2" />
+            </pattern>
+          </defs>
+          <rect x="80" y="30" width="370" height="18" fill="url(#hatch)" />
+          <line x1="80" y1={CEIL_Y} x2="450" y2={CEIL_Y} stroke={P_INK} strokeWidth="2.5" />
+
+          <line x1="295" y1={CEIL_Y} x2="295" y2="72" stroke={P_INK} strokeWidth="2" />
+          <circle cx="295" cy={DEF_CY} r="30" fill="white" stroke={P_INK} strokeWidth="2" />
+          <circle cx="295" cy={DEF_CY} r="3" fill={P_INK} />
+          <text x="345" y="65" fontSize="17" fontWeight="bold">定滑車</text>
+
+          <circle cx="230" cy={A_CY} r="35" fill="white" stroke={P_INK} strokeWidth="2" />
+          <circle cx="230" cy={A_CY} r="3" fill={P_INK} />
+          <text x="175" y={A_CY + 58} fontSize="17" fontWeight="bold">動滑車A</text>
+
+          <circle cx="190" cy={B_CY} r="40" fill="white" stroke={P_INK} strokeWidth="2" />
+          <circle cx="190" cy={B_CY} r="3" fill={P_INK} />
+          <text x="60" y={B_CY - 42} fontSize="17" fontWeight="bold">動滑車B</text>
+
+          <line x1="195" y1={CEIL_Y} x2="195" y2={A_CY} stroke={P_INK} strokeWidth="2" />
+          <path d={`M 195 ${A_CY} A 35 35 0 0 0 265 ${A_CY}`} fill="none" stroke={P_INK} strokeWidth="2" />
+          <line x1="265" y1={A_CY} x2="265" y2={DEF_CY} stroke={P_INK} strokeWidth="2" />
+          <path d={`M 265 ${DEF_CY} A 30 30 0 0 1 325 ${DEF_CY}`} fill="none" stroke={P_INK} strokeWidth="2" />
+          <line x1="325" y1={DEF_CY} x2="325" y2={handRopeEnd} stroke={P_INK} strokeWidth="2" />
+
+          <line x1="230" y1={A_CY} x2="230" y2={B_CY} stroke={P_INK} strokeWidth="2" />
+          <path d={`M 150 ${B_CY} A 40 40 0 0 0 230 ${B_CY}`} fill="none" stroke={P_INK} strokeWidth="2" />
+          <line x1="150" y1={B_CY} x2="150" y2={CEIL_Y} stroke={P_INK} strokeWidth="2" />
+
+          <text x="325" y={handRopeEnd + 30} fontSize="42" textAnchor="middle">
+            &#129307;
+          </text>
+
+          <line x1="190" y1={B_CY} x2="190" y2={B_CY + 110} stroke={P_INK} strokeWidth="2" />
+          <rect x="162" y={B_CY + 110} width="56" height="44" fill="#111" rx="2" />
+          <text x="190" y={B_CY + 137} fontSize="15" fontWeight="bold" fill="#fff" textAnchor="middle">
+            120g
+          </text>
+
+          {hasWeight && (
+            <text x="190" y={B_CY - 18} fontSize="14" fontWeight="bold" textAnchor="middle" fill={P_INK}>
+              30g
+            </text>
+          )}
+
+          {screen >= 1 && (
+            <>
+              <ForceArrow x={130} yStart={B_CY} yEnd={B_CY - B.side * FORCE_SCALE} color={P_NAVY} label={`${B.side}g`} labelSide="left" />
+              <ForceArrow x={250} yStart={B_CY} yEnd={B_CY - B.side * FORCE_SCALE} color={P_NAVY} label={`${B.side}g`} labelSide="right" />
+              <ForceArrow x={210} yStart={B_CY} yEnd={B_CY + B.down * FORCE_SCALE} color={P_RED} label={bDownLabel} labelSide="right" />
+            </>
+          )}
+
+          {hasWeight && (
+            <text x="230" y={A_CY - 12} fontSize="14" fontWeight="bold" textAnchor="middle" fill={P_INK}>
+              25g
+            </text>
+          )}
+
+          {screen >= 2 && (
+            <>
+              <ForceArrow x={175} yStart={A_CY} yEnd={A_CY - A.side * FORCE_SCALE} color={P_NAVY} label={`${A.side}g`} labelSide="left" />
+              <ForceArrow x={285} yStart={A_CY} yEnd={A_CY - A.side * FORCE_SCALE} color={P_NAVY} label={`${A.side}g`} labelSide="right" />
+              <ForceArrow x={250} yStart={A_CY} yEnd={A_CY + A.down * FORCE_SCALE} color={P_RED} label={aDownLabel} labelSide="right" />
+            </>
+          )}
+
+          {screen >= 3 && (
+            <>
+              <ForceArrow x={245} yStart={DEF_CY} yEnd={DEF_CY + F.side * FORCE_SCALE} color={P_RED} label={`${F.side}g`} labelSide="left" />
+              <ForceArrow x={345} yStart={DEF_CY} yEnd={DEF_CY + F.side * FORCE_SCALE} color={P_RED} label={`${F.side}g`} labelSide="right" />
+              <ForceArrow x={315} yStart={DEF_CY} yEnd={DEF_CY - F.center * FORCE_SCALE} color={P_NAVY} label={`${F.center}g`} labelSide="right" />
+            </>
+          )}
+        </svg>
+
+        {screen === 3 && (
+          <div
+            style={{
+              width: 48,
+              height: 300,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              touchAction: "none",
+            }}
+          >
+            <input
+              type="range"
+              min={0}
+              max={S_MAX}
+              step={1}
+              value={pulled}
+              onChange={(e) => setPulled(Number(e.target.value))}
+              style={{ width: 270, transform: "rotate(90deg)", touchAction: "none" }}
+            />
+          </div>
+        )}
+      </div>
+
+      {screen === 1 && (
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 4 }}>
+          <span style={{ fontSize: 14, color: "#555", alignSelf: "center", marginRight: 4 }}>
+            動滑車の重さ：
+          </span>
+          <button
+            onClick={() => setHasWeight(false)}
+            style={{
+              padding: "6px 16px",
+              borderRadius: 8,
+              border: !hasWeight ? "2px solid #1a237e" : "1px solid #ccc",
+              background: !hasWeight ? "#1a237e" : "#fff",
+              color: !hasWeight ? "#fff" : "#333",
+              fontSize: 14,
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            なし
+          </button>
+          <button
+            onClick={() => setHasWeight(true)}
+            style={{
+              padding: "6px 16px",
+              borderRadius: 8,
+              border: hasWeight ? "2px solid #1a237e" : "1px solid #ccc",
+              background: hasWeight ? "#1a237e" : "#fff",
+              color: hasWeight ? "#fff" : "#333",
+              fontSize: 14,
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            あり
+          </button>
+        </div>
+      )}
+
+      {screen === 3 && (
+        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+          <ValueBox label="動滑車Bの動いた距離" value={bMove} />
+          <ValueBox label="動滑車Aの動いた距離" value={aMove} />
+          <ValueBox label="引っ張った紐の長さ" value={S} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------
+   統合アプリ本体:タブで4画面を切り替え
+--------------------------------------------------------- */
+const TABS = [
+  { key: "float", label: "①動滑車(吊り下げ)", component: DoukasshaTsuriSage },
+  { key: "fixed", label: "②定滑車", component: TeikasshaTsuriSage },
+  { key: "ground", label: "③動滑車(地面固定)", component: DoukasshaJimenKotei },
+  { key: "combo", label: "④複合滑車", component: PulleyApp },
+];
+
+function App() {
+  const [tab, setTab] = useState("float");
+  const ActiveComponent = TABS.find((t) => t.key === tab).component;
+
+  return (
+    <div className="min-h-screen w-full flex justify-center" style={{ background: PAPER }}>
+      <div className="w-full max-w-md px-4 pb-4 pt-3">
+        <div className="mb-2">
+          <p className="text-xs tracking-wide text-center" style={{ color: INK_SOFT }}>THE 夜も滑車もヒッパレ</p>
+        </div>
+
+        {/* タブボタン */}
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          {TABS.map((t) => {
+            const active = t.key === tab;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className="rounded-lg py-2 text-xs font-bold border transition-colors"
+                style={
+                  active
+                    ? { background: SLIDER_COLOR, color: "white", borderColor: SLIDER_COLOR }
+                    : { background: "white", color: INK, borderColor: LINE }
+                }
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <ActiveComponent />
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
