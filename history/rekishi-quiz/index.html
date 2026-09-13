@@ -53,7 +53,6 @@ const ALBUM_ERAS = [
         specialCards: [
             { id: "jomon_special", name: "縄文特別カード:火焔型土器", image: "prizes/jomon/tokubetsu13.png", emoji: "🔥", desc: "縄文時代を代表する、燃え上がる炎のような形の土器。全カードコンプリートのボーナス。" },
             { id: "yayoi_special", name: "弥生特別カード:邪馬台国の女王", image: "prizes/yayoi/tokubetsu2.png", emoji: "👑", desc: "まじないの力で邪馬台国を治めた卑弥呼をイメージした特別カード。" },
-            { id: "kyusekki_special", name: "旧石器特別カード:準備中", image: null, emoji: "🦴", desc: "旧石器時代の特別カード(画像は準備中です)。" },
         ],
     },
     {
@@ -229,12 +228,9 @@ function buildInitialChapterSelection() {
     return map;
 }
 // 問題ID → 時代(章)ID の対応表(アルバムのご褒美をどの時代から出すか判定に使う)
+// ※問題データはJSONを非同期で読み込むため、この対応表はデータ読み込み完了後に
+//   下のuseEffect内で構築する(ここで先に組んでも常に空になってしまうため)。
 const QUESTION_ERA_MAP = {};
-CHAPTERS.forEach((c) => {
-    c.questions.forEach((q) => {
-        QUESTION_ERA_MAP[q.id] = c.id;
-    });
-});
 const PROGRESS_KEY = "history_jomon_proto:progress";
 // ============================================================
 // 学習進捗エンジン(localStorage版)
@@ -333,6 +329,11 @@ function App() {
                 .catch(() => [])
         )).then((results) => {
             CHAPTERS.forEach((c, i) => { c.questions = results[i]; });
+            CHAPTERS.forEach((c) => {
+                c.questions.forEach((q) => {
+                    QUESTION_ERA_MAP[q.id] = c.id;
+                });
+            });
             setQuestionsLoaded(true);
         });
     }, []);
