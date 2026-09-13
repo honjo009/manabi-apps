@@ -227,10 +227,6 @@ function buildInitialChapterSelection() {
     });
     return map;
 }
-// 問題ID → 時代(章)ID の対応表(アルバムのご褒美をどの時代から出すか判定に使う)
-// ※問題データはJSONを非同期で読み込むため、この対応表はデータ読み込み完了後に
-//   下のuseEffect内で構築する(ここで先に組んでも常に空になってしまうため)。
-const QUESTION_ERA_MAP = {};
 const PROGRESS_KEY = "history_jomon_proto:progress";
 // ============================================================
 // 学習進捗エンジン(localStorage版)
@@ -328,11 +324,10 @@ function App() {
                 .then((res) => res.ok ? res.json() : [])
                 .catch(() => [])
         )).then((results) => {
-            CHAPTERS.forEach((c, i) => { c.questions = results[i]; });
-            CHAPTERS.forEach((c) => {
-                c.questions.forEach((q) => {
-                    QUESTION_ERA_MAP[q.id] = c.id;
-                });
+            CHAPTERS.forEach((c, i) => {
+                // 各問題に出身章IDを直接タグ付けする。
+                // (問題JSON同士でidが重複しても、時代の取り違えが起きないようにするため)
+                c.questions = results[i].map((q) => ({ ...q, _eraId: c.id }));
             });
             setQuestionsLoaded(true);
         });
@@ -429,7 +424,7 @@ function App() {
         setRoundAnswered((n) => n + 1);
         // 出題比率をそのまま反映できるよう、時代IDは重複ありで記録する
         setRoundEraIds((prev) => {
-            const era = QUESTION_ERA_MAP[q.id];
+            const era = q._eraId;
             return era ? [...prev, era] : prev;
         });
         if (isCorrect) {
