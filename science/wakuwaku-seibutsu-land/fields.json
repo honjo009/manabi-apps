@@ -4,20 +4,20 @@
     "name": "季節と生物",
     "questionsFile": "questions/kisetsu_seibutsu.json",
     "prizeDir": "prizes/kisetsu_seibutsu",
-    "prizeImages": []
+    "prizeImages": ["(1).jpg","(2).jpg","(3).jpg","(4).jpg","(5).jpg","(6).jpg","(7).jpg","(8).jpg","(9).jpg","(10).jpg","(11).jpg"]
   },
   {
     "id": "shokubutsu_no_tsukuri",
     "name": "植物のつくり",
     "questionsFile": "questions/shokubutsu_no_tsukuri.json",
     "prizeDir": "prizes/shokubutsu_no_tsukuri",
-    "prizeImages": []
+    "prizeImages": ["(1).jpg","(2).jpg","(3).jpg","(4).jpg","(5).jpg","(6).jpg","(7).jpg","(8).jpg","(9).jpg","(10).jpg","(11).jpg"]
   },
   {
     "id": "shokubutsu_no_seichou",
     "name": "植物の成長",
     "questionsFile": "questions/shokubutsu_no_seichou.json",
     "prizeDir": "prizes/shokubutsu_no_seichou",
-    "prizeImages": []
+    "prizeImages": ["(1).jpg","(2).jpg","(3).jpg","(4).jpg","(5).jpg","(6).jpg","(7).jpg","(8).jpg","(9).jpg","(10).jpg","(11).jpg"]
   }
 ]
