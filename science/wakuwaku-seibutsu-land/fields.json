@@ -1,0 +1,23 @@
+[
+  {
+    "id": "kisetsu_seibutsu",
+    "name": "季節と生物",
+    "questionsFile": "questions/kisetsu_seibutsu.json",
+    "prizeDir": "prizes/kisetsu_seibutsu",
+    "prizeImages": []
+  },
+  {
+    "id": "shokubutsu_no_tsukuri",
+    "name": "植物のつくり",
+    "questionsFile": "questions/shokubutsu_no_tsukuri.json",
+    "prizeDir": "prizes/shokubutsu_no_tsukuri",
+    "prizeImages": []
+  },
+  {
+    "id": "shokubutsu_no_seichou",
+    "name": "植物の成長",
+    "questionsFile": "questions/shokubutsu_no_seichou.json",
+    "prizeDir": "prizes/shokubutsu_no_seichou",
+    "prizeImages": []
+  }
+]
