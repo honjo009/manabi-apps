@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>消化のしくみ・確認パズル</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+const { useState, useEffect } = React;
+
+function Drop({ size = 14, color = "#999" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+      <path d="M12 2C12 2 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-7-13-7-13z" fill={color} stroke="rgba(0,0,0,0.15)" />
+    </svg>
+  );
+}
+
+const COLS = [
+  { key: "carb", label: "炭水化物", accent: "#2E5AAC", tint: "#E8EEFA" },
+  { key: "pro", label: "タンパク質", accent: "#2F6B3A", tint: "#E9F3EA" },
+  { key: "fat", label: "脂肪", accent: "#C0392B", tint: "#FBEAE7" },
+];
+
+const ROWS = [
+  { key: "daeki", label: "だ液", dropColor: "#BFD9EA" },
+  { key: "ichieki", label: "胃液", dropColor: "#E0B23A" },
+  { key: "tanjiru", label: "胆液", dropColor: "#5B2A1E" },
+  { key: "suieki", label: "すい液", dropColor: "#CFEDEA" },
+  { key: "choueki", label: "腸液", dropColor: "#B9B9B9" },
+];
+
+const SLOT_DEFS = [
+  { id: "daeki-carb", row: "daeki", col: "carb", required: "アミラーゼ" },
+  { id: "ichieki-pro", row: "ichieki", col: "pro", required: "ペプシン" },
+  { id: "tanjiru-fat", row: "tanjiru", col: "fat", required: "乳化" },
+  { id: "suieki-carb-1", row: "suieki", col: "carb", required: "アミラーゼ" },
+  { id: "suieki-carb-2", row: "suieki", col: "carb", required: "マルターゼ" },
+  { id: "suieki-pro", row: "suieki", col: "pro", required: "トリプシン" },
+  { id: "suieki-fat", row: "suieki", col: "fat", required: "リパーゼ" },
+  { id: "choueki-carb", row: "choueki", col: "carb", required: "マルターゼ" },
+  { id: "choueki-pro", row: "choueki", col: "pro", required: "エレプシン" },
+  { id: "choueki-fat", row: "choueki", col: "fat", required: "リパーゼ" },
+];
+
+const CATEGORY_BY_LABEL = {
+  アミラーゼ: "carb",
+  マルターゼ: "carb",
+  ペプシン: "pro",
+  トリプシン: "pro",
+  エレプシン: "pro",
+  リパーゼ: "fat",
+  乳化: "fat",
+};
+
+const REQUIRED_COUNTS = {
+  アミラーゼ: 2,
+  マルターゼ: 2,
+  ペプシン: 1,
+  トリプシン: 1,
+  リパーゼ: 2,
+  エレプシン: 1,
+  乳化: 1,
+};
+
+const DUMMY_LABELS = ["ラクターゼ", "スクラーゼ", "ペプチダーゼ"];
+
+const MODES = [
+  { key: "easy", title: "かんたん", desc: "酵素にヒントの色がついている。まちがえた酵素だけやり直せる。" },
+  { key: "normal", title: "ふつう", desc: "色のヒントなし。同じ酵素を2回まで使える。まちがえた酵素だけやり直せる。" },
+  { key: "hard", title: "むずかしい", desc: "ダミーの酵素が混ざる。まちがえたら最初からやり直し。" },
+];
+
+// 裏面: どの酵素がどの栄養素をつくるか
+const PRODUCT_BY_SLOT_ID = {
+  "daeki-carb": "マルトース",
+  "ichieki-pro": "ペプトン",
+  "tanjiru-fat": "細かい脂肪の粒",
+  "suieki-carb-1": "マルトース",
+  "suieki-carb-2": "ブドウ糖",
+  "suieki-pro": "ポリペプチド",
+  "suieki-fat": "脂肪酸・モノグリセリド",
+  "choueki-carb": "ブドウ糖",
+  "choueki-pro": "アミノ酸",
+  "choueki-fat": "脂肪酸・モノグリセリド",
+};
+
+const BACK_SLOTS = SLOT_DEFS.map((s) => ({
+  id: s.id,
+  row: s.row,
+  col: s.col,
+  enzyme: s.required,
+  product: PRODUCT_BY_SLOT_ID[s.id],
+}));
+
+const CHAR_EMOJI = {
+  アミラーゼ: "🌾",
+  マルターゼ: "🍬",
+  ペプシン: "🥩",
+  トリプシン: "💪",
+  エレプシン: "🧬",
+  リパーゼ: "🧈",
+  乳化: "💧",
+};
+
+// キャラ画像: アプリと同じフォルダの ./characters/ に置く想定
+// (まだ画像が無いものはこのファイルが404になり、下のonErrorで絵文字に自動フォールバック)
+const CHAR_IMAGE = {
+  アミラーゼ: "characters/amylase.png",
+  マルターゼ: "characters/maltase.png",
+  ペプシン: "characters/pepsin.png",
+  トリプシン: "characters/trypsin.png",
+  エレプシン: "characters/erepsin.png",
+  リパーゼ: "characters/lipase.png",
+  乳化: "characters/emulsification.png",
+};
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildPanelDefs(mode) {
+  const baseLabels = Object.keys(REQUIRED_COUNTS);
+  if (mode === "easy") {
+    return baseLabels.map((label) => ({
+      id: label,
+      label,
+      maxUses: REQUIRED_COUNTS[label],
+      isDummy: false,
+      category: CATEGORY_BY_LABEL[label],
+    }));
+  }
+  const real = baseLabels.map((label) => ({
+    id: label,
+    label,
+    maxUses: 2,
+    isDummy: false,
+    category: CATEGORY_BY_LABEL[label],
+  }));
+  if (mode === "hard") {
+    const dummies = DUMMY_LABELS.map((label) => ({
+      id: "dummy-" + label,
+      label,
+      maxUses: 2,
+      isDummy: true,
+      category: null,
+    }));
+    return [...real, ...dummies];
+  }
+  return real;
+}
+
+function buildProductDefs() {
+  const counts = {};
+  BACK_SLOTS.forEach((s) => {
+    counts[s.product] = (counts[s.product] || 0) + 1;
+  });
+  return Object.entries(counts).map(([label, count]) => ({
+    id: label,
+    label,
+    maxUses: count,
+  }));
+}
+
+function freshFrontSlots() {
+  return SLOT_DEFS.map((s) => ({ ...s, placedLabel: null, placedPanelId: null, locked: false }));
+}
+
+function freshBackSlots() {
+  return BACK_SLOTS.map((s) => ({ ...s, placedLabel: null, placedPanelId: null, locked: false }));
+}
+
+const cardStyle = {
+  background: "#FFFFFF",
+  borderRadius: 14,
+  border: "1px solid #E4E0D2",
+  padding: 14,
+};
+
+const pageStyle = {
+  minHeight: "100vh",
+  background: "#F6F4EE",
+  fontFamily: "'Hiragino Maru Gothic ProN', 'BIZ UDPGothic', 'Yu Gothic', sans-serif",
+  color: "#26261F",
+  padding: "20px 16px 40px",
+  boxSizing: "border-box",
+};
+
+function App() {
+  const [stage, setStage] = useState("select"); // 'select' | 'front' | 'back'
+
+  // ---- 表面(front) state ----
+  const [mode, setMode] = useState(null);
+  const [panelDefs, setPanelDefs] = useState([]);
+  const [panelUses, setPanelUses] = useState({});
+  const [slots, setSlots] = useState(freshFrontSlots());
+  const [selectedId, setSelectedId] = useState(null);
+  const [overlay, setOverlay] = useState(null); // null | 'correct' | 'incorrect'
+
+  // ---- 裏面(back) state ----
+  const [productDefs, setProductDefs] = useState([]);
+  const [productUses, setProductUses] = useState({});
+  const [backSlots, setBackSlots] = useState(freshBackSlots());
+  const [backSelected, setBackSelected] = useState(null);
+  const [backOverlay, setBackOverlay] = useState(null); // kept for compat, unused for success now
+  const [activeChar, setActiveChar] = useState(null);
+
+  useEffect(() => {
+    if (!activeChar) return;
+    const t = setTimeout(() => setActiveChar(null), 1000);
+    return () => clearTimeout(t);
+  }, [activeChar]);
+
+  function startMode(m) {
+    const defs = shuffle(buildPanelDefs(m));
+    const uses = {};
+    defs.forEach((p) => (uses[p.id] = p.maxUses));
+    setMode(m);
+    setPanelDefs(defs);
+    setPanelUses(uses);
+    setSlots(freshFrontSlots());
+    setSelectedId(null);
+    setOverlay(null);
+    setStage("front");
+  }
+
+  function startBack() {
+    const defs = shuffle(buildProductDefs());
+    const uses = {};
+    defs.forEach((p) => (uses[p.id] = p.maxUses));
+    setProductDefs(defs);
+    setProductUses(uses);
+    setBackSlots(freshBackSlots());
+    setBackSelected(null);
+    setBackOverlay(null);
+    setStage("back");
+  }
+
+  const unlockedSlots = slots.filter((s) => !s.locked);
+  const readyToConfirm = unlockedSlots.length > 0 && unlockedSlots.every((s) => s.placedLabel);
+  const lockedCount = slots.filter((s) => s.locked).length;
+
+  function tapTray(id) {
+    if (overlay) return;
+    if ((panelUses[id] || 0) <= 0) return;
+    setSelectedId((cur) => (cur === id ? null : id));
+  }
+
+  function tapSlot(slotId) {
+    if (overlay) return;
+    const slot = slots.find((s) => s.id === slotId);
+    if (slot.locked) return;
+
+    if (selectedId) {
+      const selPanel = panelDefs.find((p) => p.id === selectedId);
+      setPanelUses((prev) => {
+        const next = { ...prev };
+        if (slot.placedPanelId) next[slot.placedPanelId] += 1;
+        next[selectedId] -= 1;
+        return next;
+      });
+      setSlots((prev) =>
+        prev.map((s) => (s.id === slotId ? { ...s, placedLabel: selPanel.label, placedPanelId: selectedId } : s))
+      );
+      setSelectedId(null);
+      return;
+    }
+
+    if (slot.placedPanelId) {
+      setPanelUses((prev) => ({ ...prev, [slot.placedPanelId]: prev[slot.placedPanelId] + 1 }));
+      setSlots((prev) => prev.map((s) => (s.id === slotId ? { ...s, placedLabel: null, placedPanelId: null } : s)));
+    }
+  }
+
+  function handleConfirm() {
+    if (mode === "hard") {
+      const allCorrect = slots.every((s) => s.placedLabel === s.required);
+      if (allCorrect) {
+        setSlots((prev) => prev.map((s) => ({ ...s, locked: true })));
+        setOverlay("correct");
+      } else {
+        setOverlay("incorrect");
+      }
+      return;
+    }
+
+    const newUses = { ...panelUses };
+    const newSlots = slots.map((s) => {
+      if (s.locked) return s;
+      if (s.placedLabel === s.required) return { ...s, locked: true };
+      if (s.placedPanelId) newUses[s.placedPanelId] += 1;
+      return { ...s, placedLabel: null, placedPanelId: null };
+    });
+    setSlots(newSlots);
+    setPanelUses(newUses);
+    if (newSlots.every((s) => s.locked)) setOverlay("correct");
+  }
+
+  function handleReset() {
+    startMode(mode);
+  }
+
+  // ---- 裏面ロジック ----
+  const backUnlocked = backSlots.filter((s) => !s.locked);
+  const backReady = backUnlocked.length > 0 && backUnlocked.every((s) => s.placedLabel);
+  const backLockedCount = backSlots.filter((s) => s.locked).length;
+
+  function tapProductTray(id) {
+    if (backOverlay) return;
+    if ((productUses[id] || 0) <= 0) return;
+    setBackSelected((cur) => (cur === id ? null : id));
+  }
+
+  function tapBackSlot(slotId) {
+    if (backOverlay) return;
+    const slot = backSlots.find((s) => s.id === slotId);
+    if (slot.locked) return;
+
+    if (backSelected) {
+      const selPanel = productDefs.find((p) => p.id === backSelected);
+      setProductUses((prev) => {
+        const next = { ...prev };
+        if (slot.placedPanelId) next[slot.placedPanelId] += 1;
+        next[backSelected] -= 1;
+        return next;
+      });
+      setBackSlots((prev) =>
+        prev.map((s) => (s.id === slotId ? { ...s, placedLabel: selPanel.label, placedPanelId: backSelected } : s))
+      );
+      setBackSelected(null);
+      return;
+    }
+
+    if (slot.placedPanelId) {
+      setProductUses((prev) => ({ ...prev, [slot.placedPanelId]: prev[slot.placedPanelId] + 1 }));
+      setBackSlots((prev) => prev.map((s) => (s.id === slotId ? { ...s, placedLabel: null, placedPanelId: null } : s)));
+    }
+  }
+
+  function handleBackConfirm() {
+    const newUses = { ...productUses };
+    const newSlots = backSlots.map((s) => {
+      if (s.locked) return s;
+      if (s.placedLabel === s.product) return { ...s, locked: true };
+      if (s.placedPanelId) newUses[s.placedPanelId] += 1;
+      return { ...s, placedLabel: null, placedPanelId: null };
+    });
+    setBackSlots(newSlots);
+    setProductUses(newUses);
+    if (newSlots.every((s) => s.locked)) setStage("result");
+  }
+
+  const trayPanels = panelDefs.filter((p) => (panelUses[p.id] || 0) > 0);
+  const modeMeta = MODES.find((m) => m.key === mode);
+  const trayProducts = productDefs.filter((p) => (productUses[p.id] || 0) > 0);
+
+  // ======================================================
+  // モード選択画面
+  // ======================================================
+  if (stage === "select") {
+    return (
+      <div style={{ ...pageStyle, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ maxWidth: 420, width: "100%" }}>
+          <div style={{ fontSize: 13, letterSpacing: 1, color: "#8A8672" }}>消化のしくみ・確認パズル</div>
+          <h1 style={{ fontSize: 21, margin: "4px 0 20px", fontWeight: 800 }}>難易度をえらぼう</h1>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {MODES.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => startMode(m.key)}
+                style={{ textAlign: "left", background: "#FFFFFF", border: "1px solid #E4E0D2", borderRadius: 14, padding: "14px 16px", cursor: "pointer" }}
+              >
+                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{m.title}</div>
+                <div style={{ fontSize: 12.5, color: "#5B5847", lineHeight: 1.6 }}>{m.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ======================================================
+  // 裏面: 分解後の栄養素パズル
+  // ======================================================
+  if (stage === "back") {
+    return (
+      <div style={pageStyle}>
+        <header style={{ maxWidth: 720, margin: "0 auto 18px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, background: "#26261F", color: "#FFFFFF", borderRadius: 999, padding: "3px 10px" }}>
+              裏面チャレンジ
+            </span>
+            <button
+              onClick={() => setStage("select")}
+              style={{ fontSize: 12, color: "#8A8672", background: "none", border: "none", textDecoration: "underline", cursor: "pointer", padding: 0 }}
+            >
+              さいしょから
+            </button>
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "#8A8672" }}>
+              正解 {backLockedCount} / {BACK_SLOTS.length}
+            </span>
+          </div>
+          <h1 style={{ fontSize: 20, margin: "4px 0 6px", fontWeight: 800 }}>分解されると、何になる？</h1>
+          <p style={{ fontSize: 13.5, color: "#5B5847", margin: 0, lineHeight: 1.6 }}>
+            下のパネルをタップして選び、酵素の下のマスに置こう。
+          </p>
+        </header>
+
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div style={cardStyle}>
+            <div style={{ display: "grid", gridTemplateColumns: "62px repeat(3, 1fr)", gap: 8, marginBottom: 8 }}>
+              <div />
+              {COLS.map((c) => (
+                <div key={c.key} style={{ textAlign: "center", fontWeight: 700, fontSize: 12.5, color: c.accent, padding: "6px 2px", borderBottom: `2px solid ${c.accent}` }}>
+                  {c.label}
+                </div>
+              ))}
+            </div>
+
+            {ROWS.map((r) => (
+              <div key={r.key} style={{ display: "grid", gridTemplateColumns: "62px repeat(3, 1fr)", gap: 8, alignItems: "stretch", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700 }}>
+                  <Drop size={13} color={r.dropColor} />
+                  {r.label}
+                </div>
+
+                {COLS.map((c) => {
+                  const cellSlots = backSlots.filter((s) => s.row === r.key && s.col === c.key);
+                  if (cellSlots.length === 0) {
+                    return (
+                      <div key={c.key} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#C7C3B4", fontSize: 14, minHeight: 34 }}>
+                        —
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={c.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {cellSlots.map((slot) => (
+                        <div key={slot.id} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              textAlign: "center",
+                              padding: "2px 3px",
+                              borderRadius: 5,
+                              background: c.tint,
+                              color: c.accent,
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            {slot.enzyme}
+                          </div>
+                          <button
+                            onClick={() => tapBackSlot(slot.id)}
+                            style={{
+                              minHeight: 36,
+                              borderRadius: 7,
+                              border: slot.locked ? `2px solid ${c.accent}` : slot.placedLabel ? `1.5px solid ${c.accent}` : "1.5px dashed #C7C3B4",
+                              background: slot.placedLabel ? c.tint : "#FBFAF6",
+                              color: slot.placedLabel ? c.accent : "#B7B3A2",
+                              fontWeight: 700,
+                              fontSize: 10.5,
+                              cursor: slot.locked || backOverlay ? "default" : "pointer",
+                              padding: "3px 2px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 3,
+                              lineHeight: 1.25,
+                            }}
+                          >
+                            {slot.locked && <span>✓</span>}
+                            {slot.placedLabel || "？"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ ...cardStyle, marginTop: 14 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "#8A8672", marginBottom: 10 }}>
+              分解後の栄養素パネル
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {trayProducts.map((p) => {
+                const usesLeft = productUses[p.id];
+                const selected = backSelected === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => tapProductTray(p.id)}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: 12,
+                      border: selected ? "2px solid #26261F" : "1.5px solid #D8D4C4",
+                      background: selected ? "#26261F" : "#FBFAF6",
+                      color: selected ? "#FFFFFF" : "#26261F",
+                      fontWeight: 700,
+                      fontSize: 12.5,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    {p.label}
+                    {p.maxUses > 1 && <span style={{ fontSize: 10, fontWeight: 800, opacity: 0.75 }}>×{usesLeft}</span>}
+                  </button>
+                );
+              })}
+              {trayProducts.length === 0 && <div style={{ fontSize: 13, color: "#B7B3A2" }}>全部置いたよ！</div>}
+            </div>
+
+            <button
+              onClick={handleBackConfirm}
+              disabled={!backReady || !!backOverlay}
+              style={{
+                marginTop: 16,
+                width: "100%",
+                padding: "12px 0",
+                borderRadius: 10,
+                border: "none",
+                background: backReady && !backOverlay ? "#2E5AAC" : "#DCD9CD",
+                color: backReady && !backOverlay ? "#FFFFFF" : "#9B9788",
+                fontWeight: 800,
+                fontSize: 14.5,
+                cursor: backReady && !backOverlay ? "pointer" : "default",
+              }}
+            >
+              確定する
+            </button>
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+
+  // ======================================================
+  // 結果画面: 裏面クリア後の一覧+酵素キャラ
+  // ======================================================
+  if (stage === "result") {
+    return (
+      <div style={pageStyle}>
+        <header style={{ maxWidth: 720, margin: "0 auto 18px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, background: "#2E5AAC", color: "#FFFFFF", borderRadius: 999, padding: "3px 10px" }}>
+              裏面クリア！
+            </span>
+          </div>
+          <h1 style={{ fontSize: 20, margin: "4px 0 6px", fontWeight: 800 }}>よくできました！</h1>
+          <p style={{ fontSize: 13.5, color: "#5B5847", margin: 0, lineHeight: 1.6 }}>
+            酵素の名前をタップすると、酵素キャラが出てくるよ。
+          </p>
+        </header>
+
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div style={cardStyle}>
+            <div style={{ display: "grid", gridTemplateColumns: "62px repeat(3, 1fr)", gap: 8, marginBottom: 8 }}>
+              <div />
+              {COLS.map((c) => (
+                <div key={c.key} style={{ textAlign: "center", fontWeight: 700, fontSize: 12.5, color: c.accent, padding: "6px 2px", borderBottom: `2px solid ${c.accent}` }}>
+                  {c.label}
+                </div>
+              ))}
+            </div>
+
+            {ROWS.map((r) => (
+              <div key={r.key} style={{ display: "grid", gridTemplateColumns: "62px repeat(3, 1fr)", gap: 8, alignItems: "stretch", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700 }}>
+                  <Drop size={13} color={r.dropColor} />
+                  {r.label}
+                </div>
+
+                {COLS.map((c) => {
+                  const cellSlots = BACK_SLOTS.filter((s) => s.row === r.key && s.col === c.key);
+                  if (cellSlots.length === 0) {
+                    return (
+                      <div key={c.key} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#C7C3B4", fontSize: 14, minHeight: 34 }}>
+                        —
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={c.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {cellSlots.map((slot) => (
+                        <div key={slot.id} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                          <button
+                            onClick={() => setActiveChar(slot.enzyme)}
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              textAlign: "center",
+                              padding: "3px 3px",
+                              borderRadius: 5,
+                              background: c.tint,
+                              color: c.accent,
+                              lineHeight: 1.3,
+                              border: "1px solid " + c.accent + "33",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {slot.enzyme}
+                          </button>
+                          <div
+                            style={{
+                              minHeight: 36,
+                              borderRadius: 7,
+                              border: `1.5px solid ${c.accent}`,
+                              background: c.tint,
+                              color: c.accent,
+                              fontWeight: 700,
+                              fontSize: 10.5,
+                              padding: "4px 3px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              textAlign: "center",
+                              lineHeight: 1.25,
+                            }}
+                          >
+                            {slot.product}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setStage("select")}
+            style={{
+              marginTop: 16,
+              width: "100%",
+              padding: "13px 0",
+              borderRadius: 10,
+              border: "none",
+              background: "#26261F",
+              color: "#FFFFFF",
+              fontWeight: 800,
+              fontSize: 14.5,
+              cursor: "pointer",
+            }}
+          >
+            終わる
+          </button>
+        </div>
+
+        {activeChar && (
+          <div
+            style={{
+              position: "fixed",
+              left: 0,
+              right: 0,
+              bottom: 32,
+              display: "flex",
+              justifyContent: "center",
+              pointerEvents: "none",
+              animation: "popIn 0.25s ease-out",
+            }}
+          >
+            <div
+              style={{
+                background: "#FFFFFF",
+                border: "2px solid #26261F",
+                borderRadius: 999,
+                padding: "10px 20px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 28,
+                  width: 44,
+                  height: 44,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <img
+                  src={CHAR_IMAGE[activeChar]}
+                  alt={activeChar}
+                  style={{ width: 44, height: 44, objectFit: "contain", borderRadius: 10 }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    e.currentTarget.nextSibling.style.display = "inline";
+                  }}
+                />
+                <span style={{ display: "none" }}>{CHAR_EMOJI[activeChar] || "✨"}</span>
+              </span>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>{activeChar}</span>
+            </div>
+          </div>
+        )}
+
+        <style>{`
+          @keyframes popIn {
+            0% { transform: scale(0.6); opacity: 0; }
+            60% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // ======================================================
+  // 表面: 消化液×酵素パズル
+  // ======================================================
+  return (
+    <div style={pageStyle}>
+      <header style={{ maxWidth: 980, margin: "0 auto 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, background: "#26261F", color: "#FFFFFF", borderRadius: 999, padding: "3px 10px" }}>
+            難易度: {modeMeta.title}
+          </span>
+          <button
+            onClick={() => setStage("select")}
+            style={{ fontSize: 12, color: "#8A8672", background: "none", border: "none", textDecoration: "underline", cursor: "pointer", padding: 0 }}
+          >
+            モードを変える
+          </button>
+          <span style={{ marginLeft: "auto", fontSize: 12, color: "#8A8672" }}>
+            正解 {lockedCount} / {SLOT_DEFS.length}
+          </span>
+        </div>
+        <h1 style={{ fontSize: 20, margin: "4px 0 6px", fontWeight: 800 }}>どの消化液に、どの酵素？</h1>
+        <p style={{ fontSize: 13.5, color: "#5B5847", margin: 0, lineHeight: 1.6 }}>
+          右のパネルをタップして選び、当てはまるマスをタップして置こう。
+        </p>
+      </header>
+
+      <div style={{ maxWidth: 980, margin: "0 auto", display: "flex", gap: 18, flexWrap: "wrap" }}>
+        <div style={{ flex: "2 1 560px", minWidth: 320 }}>
+          <div style={cardStyle}>
+            <div style={{ display: "grid", gridTemplateColumns: "76px repeat(3, 1fr)", gap: 8, marginBottom: 8 }}>
+              <div />
+              {COLS.map((c) => (
+                <div key={c.key} style={{ textAlign: "center", fontWeight: 700, fontSize: 13.5, color: c.accent, padding: "6px 4px", borderBottom: `2px solid ${c.accent}` }}>
+                  {c.label}
+                </div>
+              ))}
+            </div>
+
+            {ROWS.map((r) => (
+              <div key={r.key} style={{ display: "grid", gridTemplateColumns: "76px repeat(3, 1fr)", gap: 8, alignItems: "stretch", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700 }}>
+                  <Drop size={14} color={r.dropColor} />
+                  {r.label}
+                </div>
+
+                {COLS.map((c) => {
+                  const cellSlots = slots.filter((s) => s.row === r.key && s.col === c.key);
+                  if (cellSlots.length === 0) {
+                    return (
+                      <div key={c.key} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#C7C3B4", fontSize: 15, minHeight: 40 }}>
+                        —
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={c.key} style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {cellSlots.map((slot) => (
+                        <button
+                          key={slot.id}
+                          onClick={() => tapSlot(slot.id)}
+                          style={{
+                            flex: 1,
+                            minWidth: 64,
+                            minHeight: 40,
+                            borderRadius: 8,
+                            border: slot.locked ? `2px solid ${c.accent}` : slot.placedLabel ? `1.5px solid ${c.accent}` : "1.5px dashed #C7C3B4",
+                            background: slot.placedLabel ? c.tint : "#FBFAF6",
+                            color: slot.placedLabel ? c.accent : "#B7B3A2",
+                            fontWeight: 700,
+                            fontSize: 12,
+                            cursor: slot.locked || overlay ? "default" : "pointer",
+                            padding: "4px 2px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 3,
+                          }}
+                        >
+                          {slot.locked && <span>✓</span>}
+                          {slot.placedLabel || "？"}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ flex: "1 1 220px", minWidth: 200 }}>
+          <div style={{ ...cardStyle, position: "sticky", top: 12 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "#8A8672", marginBottom: 10 }}>酵素パネル</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {trayPanels.map((p) => {
+                const usesLeft = panelUses[p.id];
+                const catColor = mode === "easy" && p.category ? COLS.find((c) => c.key === p.category) : null;
+                const selected = selectedId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => tapTray(p.id)}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: 999,
+                      border: selected ? "2px solid #26261F" : `1.5px solid ${catColor ? catColor.accent + "55" : "#D8D4C4"}`,
+                      background: selected ? "#26261F" : catColor ? catColor.tint : "#FBFAF6",
+                      color: selected ? "#FFFFFF" : catColor ? catColor.accent : "#26261F",
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    {p.label}
+                    {p.maxUses > 1 && <span style={{ fontSize: 10.5, fontWeight: 800, opacity: 0.75 }}>×{usesLeft}</span>}
+                  </button>
+                );
+              })}
+              {trayPanels.length === 0 && <div style={{ fontSize: 13, color: "#B7B3A2" }}>全部置いたよ！</div>}
+            </div>
+
+            <button
+              onClick={handleConfirm}
+              disabled={!readyToConfirm || !!overlay}
+              style={{
+                marginTop: 16,
+                width: "100%",
+                padding: "12px 0",
+                borderRadius: 10,
+                border: "none",
+                background: readyToConfirm && !overlay ? "#2E5AAC" : "#DCD9CD",
+                color: readyToConfirm && !overlay ? "#FFFFFF" : "#9B9788",
+                fontWeight: 800,
+                fontSize: 14.5,
+                cursor: readyToConfirm && !overlay ? "pointer" : "default",
+              }}
+            >
+              確定する
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {overlay && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(38,38,31,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: "#FFFFFF", borderRadius: 16, padding: "28px 24px", textAlign: "center", maxWidth: 320, width: "100%" }}>
+            {overlay === "correct" ? (
+              <>
+                <div style={{ fontSize: 34, margin: "0 auto 10px", textAlign: "center" }}>✨</div>
+                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>正解！</div>
+                <div style={{ fontSize: 13.5, color: "#5B5847", marginBottom: 18 }}>
+                  {mode === "hard" ? "むずかしいモードをクリアしました。" : "すべての消化液と酵素を正しく対応できました。"}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>残念！</div>
+                <div style={{ fontSize: 13.5, color: "#5B5847", marginBottom: 18 }}>まちがいがあるよ。最初からやり直そう。</div>
+              </>
+            )}
+
+            {overlay === "correct" && mode === "hard" ? (
+              <button
+                onClick={startBack}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 999, border: "none", background: "#2E5AAC", color: "#FFFFFF", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
+              >
+                続いて裏面へ挑戦！
+                <span>→</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleReset}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 999, border: "none", background: "#26261F", color: "#FFFFFF", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
+              >
+                <span>🔁</span>
+                {overlay === "correct" ? "もう一度挑戦" : "やり直す"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
