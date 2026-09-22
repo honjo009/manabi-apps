@@ -19,5 +19,12 @@
     "questionsFile": "questions/shokubutsu_no_seichou.json",
     "prizeDir": "prizes/shokubutsu_no_seichou",
     "prizeImages": ["(1).jpg","(2).jpg","(3).jpg","(4).jpg","(5).jpg","(6).jpg","(7).jpg","(8).jpg","(9).jpg","(10).jpg","(11).jpg"]
+  },
+  {
+    "id": "shoka_to_kyushu",
+    "name": "消化と吸収",
+    "questionsFile": "questions/shoka_to_kyushu.json",
+    "prizeDir": "prizes/shoka_to_kyushu",
+    "prizeImages": []
   }
 ]
