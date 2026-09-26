@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>禁断の化学式① 塩酸と水酸化ナトリウム</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#1F3A5F;--ink2:#5B7190;--paper:#F4F8FB;--grid:#DCE7F0;--line:#B9CCDD;--go:#E5534B;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Zen Maru Gothic','Hiragino Maru Gothic ProN','Hiragino Sans',sans-serif;
+    color:var(--ink);background-color:var(--paper);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:22px 22px;-webkit-tap-highlight-color:transparent;
+  }
+  .screen{max-width:520px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:14px 14px calc(16px + env(safe-area-inset-bottom))}
+  .hidden{display:none!important}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;margin:0 2px 10px}
+  h1{font-size:21px;font-weight:900;letter-spacing:.04em;line-height:1.2}
+  h1 small{display:block;font-size:12px;font-weight:700;color:var(--ink2);letter-spacing:0;margin-top:2px}
+  .reset{background:none;border:none;font-family:inherit;font-size:14px;color:var(--ink2);cursor:pointer;padding:6px 2px}
+  .reset:focus-visible{outline:2px solid var(--go)}
+
+  .lead{font-size:14px;color:var(--ink2);margin:2px 2px 14px}
+
+  .orient{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+  .obeaker{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:16px;box-shadow:4px 4px 0 var(--ink);
+           display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .obeaker .tag{font-size:12px;font-weight:700;color:var(--ink2);background:var(--grid);padding:5px 12px;border-radius:999px;white-space:nowrap}
+  .obeaker .nm{font-size:17px;font-weight:900;text-align:right}
+  .swap{width:100%;padding:13px;border:2px solid var(--ink);border-radius:14px;background:#fff;color:var(--ink);
+        font-family:inherit;font-size:16px;font-weight:900;cursor:pointer;margin-bottom:10px}
+  .swap:active{transform:translateY(2px)}
+  .start{width:100%;padding:15px;border:none;border-radius:14px;cursor:pointer;font-family:inherit;font-size:19px;font-weight:900;letter-spacing:.1em;
+        background:var(--go);color:#fff;box-shadow:0 5px 0 #A83530;margin-top:auto}
+  .start:active{transform:translateY(4px);box-shadow:0 1px 0 #A83530}
+
+  .eq{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:6px 10px;text-align:center;font-size:11px;font-weight:700;line-height:1.45;min-height:calc(2.4 * 1.45em + 12px);display:flex;flex-direction:column;justify-content:center}
+  .eq .formula:empty{display:none}
+  sub,sup{font-size:.7em;line-height:0}
+
+  .stage{margin:10px 0;background:rgba(255,255,255,.7);border:2px solid var(--line);border-radius:14px;display:flex;justify-content:center;overflow:hidden}
+  .stage svg{width:100%;height:auto;max-height:calc(100dvh - 300px);display:block}
+  .dock{position:sticky;bottom:0;padding:8px 0 calc(4px + env(safe-area-inset-bottom));background:linear-gradient(rgba(244,248,251,0),var(--paper) 30%)}
+
+  .banner{font-size:13px;font-weight:900;color:var(--go);text-align:center;min-height:20px;margin:2px 0 6px;white-space:nowrap}
+  .counter{font-size:12px;font-weight:700;color:var(--ink2);text-align:center;margin-bottom:8px}
+
+  .sym{font-weight:900;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+  .chg{font-size:13px;font-weight:900;fill:#1F3A5F;stroke:#fff;stroke-width:3;paint-order:stroke;text-anchor:middle;dominant-baseline:central;transition:opacity .4s}
+  .pill{font-size:36px;font-weight:900;fill:#fff;text-anchor:middle;dominant-baseline:central}
+  .nlbl{font-size:26px;font-weight:900;fill:#1F3A5F}
+  .blbl{font-size:13px;font-weight:700;fill:#5B7190}
+  .flk{transform-box:fill-box;transform-origin:50% 100%;animation:flk .45s ease-in-out infinite alternate}
+  @keyframes flk{from{transform:scale(1,1)}to{transform:scale(.88,1.12)}}
+
+  .btns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .btn{
+    padding:14px 0;border-radius:14px;font-family:inherit;font-size:19px;font-weight:900;letter-spacing:.15em;
+    border:2px solid var(--line);background:#fff;color:var(--line);cursor:default;transition:transform .08s,box-shadow .08s;
+  }
+  .btn.did{color:var(--ink2);border-color:var(--ink2)}
+  .btn.next{background:var(--go);border-color:var(--go);color:#fff;cursor:pointer;box-shadow:0 5px 0 #A83530}
+  .btn.next:active{transform:translateY(4px);box-shadow:0 1px 0 #A83530}
+  .btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+  .again{
+    width:100%;padding:14px;border:none;border-radius:14px;cursor:pointer;font-family:inherit;font-size:19px;font-weight:900;letter-spacing:.1em;
+    background:var(--ink);color:#fff;box-shadow:0 5px 0 #0F2239;
+  }
+  .again:active{transform:translateY(4px);box-shadow:0 1px 0 #0F2239}
+  .again:focus-visible{outline:3px solid var(--go);outline-offset:3px}
+  @media (prefers-reduced-motion:reduce){.flk{animation:none}.btn,.again,.start{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="screen" id="setup">
+  <header><h1>禁断の化学式①<small>粒のうごきで見る中和</small></h1></header>
+  <p class="lead">上のビーカーと下のビーカー、どちらに何を入れるか決めよう<br>（上のビーカーをかたむけて下に注ぎます）</p>
+  <div class="orient">
+    <div class="obeaker"><span class="tag">上のビーカー</span><span class="nm" id="oTop"></span></div>
+    <div class="obeaker"><span class="tag">下のビーカー</span><span class="nm" id="oBottom"></span></div>
+  </div>
+  <button class="swap" id="swapBtn">入れかえる</button>
+  <button class="start" id="startBtn">はじめる</button>
+</div>
+
+<div class="screen hidden" id="play">
+  <header>
+    <h1 id="title">禁断の化学式①<small id="subtitle"></small></h1>
+    <button class="reset" id="resetBtn">最初から</button>
+  </header>
+  <div class="eq" role="status" aria-live="polite">
+    <div class="cap" id="cap"></div>
+    <div class="formula" id="formula"></div>
+  </div>
+  <div class="stage"><svg id="svg" viewBox="0 0 380 730" aria-label="ビーカーの中の粒子のようす"></svg></div>
+  <div class="dock">
+  <div class="banner" id="banner"></div>
+  <div class="counter" id="counter"></div>
+  <div class="btns" id="btns">
+    <button class="btn" id="bPrep">準備</button>
+    <button class="btn" id="bNeu">中和</button>
+    <button class="btn" id="bEva">蒸発</button>
+  </div>
+  <button class="again hidden" id="again">もう一度</button>
+  </div>
+  <button class="reset" id="back" style="align-self:flex-start;margin-top:2px">← 上下を選びなおす</button>
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+const svg=$('svg');
+const INK='#1F3A5F';
+function el(tag,attrs,parent){const n=document.createElementNS(NS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);if(parent)parent.appendChild(n);return n;}
+function txt(parent,t,x,y,attrs={}){const n=el('text',Object.assign({x,y},attrs),parent);n.textContent=t;return n;}
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const lerp=(p,q,t)=>[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t];
+const easeIn=t=>t*t, easeOut=t=>1-Math.pow(1-t,3), lin=t=>t;
+const easeInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const WOB=reduce?0:8;
+
+// ---- 化学の設定（塩酸＋水酸化ナトリウムのみ）----
+const ACID={kind:'acid',cation:'H',anion:'Cl',label:'塩化水素(塩酸)',sol:'塩酸',ionEq:'HCl → H<sup>+</sup> ＋ Cl<sup>−</sup>',gasName:'塩化水素'};
+const BASE={kind:'base',cation:'Na',anion:'OH',label:'水酸化ナトリウム',sol:'水酸化ナトリウム水溶液',ionEq:'NaOH → Na<sup>+</sup> ＋ OH<sup>−</sup>',solidName:'水酸化ナトリウム'};
+const TOP_N=5, BOTTOM_N=3;
+let topIsAcid=true;
+let topChem=ACID, bottomChem=BASE;
+
+// ---- 配置 ----
+const VH=730;
+const VW=(()=>{const w=Math.min(520,window.innerWidth)-32,h=Math.max(300,window.innerHeight-360);
+  return Math.round(Math.min(600,Math.max(380,VH*w/h)));})();
+svg.setAttribute('viewBox',`0 0 ${VW} ${VH}`);
+const X0=VW-260,Y0=70;              // 上ビーカーの左上（注ぎ口・回転の中心）
+const UW=255,UH=225;
+const RMARGIN=233;                 // 下ビーカーの右に確保する表示スペース幅
+const LB={x1:14,x2:VW-14-RMARGIN,top:336,bot:690};
+const LCX=(LB.x1+LB.x2)/2;
+const UPLV=Y0+45;                  // 上ビーカーの液面
+const LV0=500,LV1=440;             // 下ビーカーの液面（開始／満量）
+
+const R={H:16,O:21,Cl:23,Na:23};
+const COL={H:'#FFFFFF',O:'#E5534B',Cl:'#4FAE55',Na:'#9B6FD6'};
+const FS={H:17,O:21,Cl:19,Na:19};
+
+const UPSLOTS=[];for(let r=0;r<3;r++)for(let c=0;c<5;c++)UPSLOTS.push([30+c*50,72+r*46]);
+const LOWSLOTS=[];{
+  const cols=Math.max(2,Math.floor((LB.x2-LB.x1-60)/56)+1),step=(LB.x2-LB.x1-60)/(cols-1);
+  for(let r=0;r<6;r++)for(let c=0;c<cols;c++)LOWSLOTS.push([LB.x1+30+c*step,519+r*28]);
+}
+const jit=p=>[p[0]+rnd(-3,3),p[1]+rnd(-3,3)];
+
+// ---- 静的な図 ----
+const defs=el('defs',{},svg);
+const upPath='M0,0 L0,207 Q0,225 18,225 L237,225 Q255,225 255,207 L255,0 Z';
+const R2=LB.x2;
+const lowPath=`M14,336 L14,676 Q14,690 28,690 L${R2-14},690 Q${R2},690 ${R2},676 L${R2},336 Z`;
+el('path',{d:upPath},el('clipPath',{id:'upClip'},defs));
+el('path',{d:lowPath},el('clipPath',{id:'lowClip'},defs));
+
+const lowBack=el('g',{},svg);
+el('path',{d:lowPath,fill:'rgba(255,255,255,.6)'},lowBack);
+const lowClipG=el('g',{'clip-path':'url(#lowClip)'},lowBack);
+const lowLiq=el('rect',{x:0,width:VW,y:LV0,height:200,fill:'#BFE0F2',opacity:.8},lowClipG);
+const HALF=(LB.top+LB.bot)/2;
+const cloudRect=el('rect',{x:0,width:VW,y:HALF,height:LB.bot-HALF+10,fill:'#FFFFFF',opacity:0},lowClipG);
+
+const upBack=el('g',{},svg);
+el('path',{d:upPath,fill:'rgba(255,255,255,.6)'},upBack);
+const upRot=el('g',{},el('g',{'clip-path':'url(#upClip)'},upBack));
+const upLiq=el('rect',{x:-400,width:800,height:800,y:UPLV-Y0,fill:'#BFE0F2',opacity:.8},upRot);
+
+const stream=el('path',{fill:'none',stroke:'#8CC8EA','stroke-width':6,'stroke-linecap':'round',opacity:0},svg);
+const pl=el('g',{},svg);
+
+const lowFront=el('g',{},svg);
+el('path',{d:`M8,330 Q13,332 14,342 L14,676 Q14,690 28,690 L${R2-14},690 Q${R2},690 ${R2},676 L${R2},342 Q${R2+1},332 ${R2+6},330`,fill:'none',stroke:INK,'stroke-width':3,'stroke-linejoin':'round'},lowFront);
+[420,500,580].forEach(y=>el('line',{x1:R2-16,y1:y,x2:R2,y2:y,stroke:INK,'stroke-width':2},lowFront));
+const upFront=el('g',{},svg);
+el('path',{d:'M-10,-7 Q-1,-3 0,8 L0,207 Q0,225 18,225 L237,225 Q255,225 255,207 L255,6 Q256,-1 260,-3',fill:'none',stroke:INK,'stroke-width':3,'stroke-linejoin':'round'},upFront);
+[70,120,170].forEach(y=>el('line',{x1:237,y1:y,x2:255,y2:y,stroke:INK,'stroke-width':2},upFront));
+
+const upTag=el('g',{},upFront);
+const upLab=txt(upTag,'',14,32,{class:'nlbl',style:'font-size:17px'});
+const PCOL={'酸性':'#E5534B','中性':'#3FA35B','アルカリ性':'#3F6FD8'};
+const PW={'酸性':150,'中性':150,'アルカリ性':258};
+function pill(parent,x,y,align){
+  const g=el('g',{},parent),r=el('rect',{y:y-30,height:60,rx:30,stroke:'#fff','stroke-width':3},g),t=el('text',{y,class:'pill'},g);
+  let cur;
+  return k=>{
+    if(k===cur)return;cur=k;
+    const w=PW[k],x0=align==='right'?x-w:x;
+    g.setAttribute('opacity',1);
+    r.setAttribute('x',x0);r.setAttribute('width',w);r.setAttribute('fill',PCOL[k]);
+    t.setAttribute('x',x0+w/2);t.textContent=k;
+  };
+}
+const upTagOut=el('g',{},svg);
+const upPill=pill(upTagOut,VW-8,36,'right');
+const lowTagLayer=el('g',{});svg.insertBefore(lowTagLayer,stream);
+const lowPill=pill(lowTagLayer,LB.x2-10,398,'right');
+const lowLab=txt(svg,'',14,318,{class:'nlbl',style:'font-size:17px'});
+const fl=el('g',{opacity:0},svg);
+[LCX-40,LCX,LCX+40].forEach((x,i)=>{
+  const inner=el('g',{class:'flk',style:`animation-delay:${-i*.2}s`},el('g',{transform:`translate(${x},726)`},fl));
+  el('path',{d:'M0,0 C-9,-8 -6,-18 0,-30 C6,-18 9,-8 0,0Z',fill:'#F29A3A'},inner);
+  el('path',{d:'M0,0 C-5,-5 -3,-11 0,-18 C3,-11 5,-5 0,0Z',fill:'#FFD66B'},inner);
+});
+
+// ---- 蒸発させたら何gのこるか（右下の空きスペースに表示）----
+const MOLAR={NaCl:58.5,NaOH:40};
+const massBox=el('g',{opacity:0},svg);
+const massMidY=(LB.top+LB.bot)/2;
+const massCX=LB.x2+16+(RMARGIN-32)/2;
+const massRect=el('rect',{x:LB.x2+16,y:massMidY-42,width:RMARGIN-32,height:84,rx:20,fill:'#fff',opacity:.92,stroke:'#B9CCDD','stroke-width':2},massBox);
+let lastMassSig='';
+let finalMassLines=[];
+function evapNowMass(){
+  const cnt=k=>parts.filter(p=>p.kind===k&&p.loc==='low').length;
+  const cats=cnt('Na'),ans=cnt('Cl'),ohs=cnt('OH');
+  const uSalt=Math.min(cats,ans);
+  const uBase=Math.min(cats-uSalt,ohs);
+  return uSalt*MOLAR.NaCl+uBase*MOLAR.NaOH;
+}
+function renderMassBox(lines){
+  [...massBox.querySelectorAll('text')].forEach(n=>n.remove());
+  const gap=10;
+  const lh=lines.map(l=>l.size+gap);
+  const totalH=lh.reduce((a,b)=>a+b,0)+20;
+  const rectY=massMidY-totalH/2;
+  massRect.setAttribute('y',rectY);massRect.setAttribute('height',totalH);
+  let y=rectY+14+lines[0].size*0.8;
+  lines.forEach((l,i)=>{
+    txt(massBox,l.text,massCX,y,{'text-anchor':'middle',style:`font-size:${l.size}px;font-weight:${l.weight||900};fill:${l.color||'#1F3A5F'}`});
+    y+=lh[i];
+  });
+}
+
+// ---- 状態 ----
+let parts=[],tweens=[],timers=[];
+let upA=0,upLv=UPLV,lowLv=LV0,lowTarget=LV0;
+let stage='idle',stepsDone=0,streamOp=0;
+let dropsDone=0,h2oCount=0,reachedComplete=false,dropping=false;
+let lowFree=[];
+
+function at(ms,fn){timers.push(setTimeout(fn,ms));}
+function tween(from,to,dur,ease,set,done){tweens.push({t0:performance.now(),from,to,dur:Math.max(1,dur),ease,set,done});}
+function upWorld(lp){const a=upA*Math.PI/180,c=Math.cos(a),s=Math.sin(a);return [X0+lp[0]*c-lp[1]*s,Y0+lp[0]*s+lp[1]*c];}
+function homePos(h){return h.sp==='up'?upWorld(h.p):h.p;}
+
+// ---- 粒子 ----
+function atom(g,e,x,y,sw){
+  el('circle',{cx:x,cy:y,r:R[e],fill:COL[e],stroke:INK,'stroke-width':sw||2},g);
+  const t=txt(g,e,x,y,{class:'sym','font-size':FS[e],fill:e==='H'?'#333':'#fff'});
+}
+function build(p){
+  while(p.g.firstChild)p.g.firstChild.remove();
+  p.badge=null;
+  const k=p.kind,sw=p.bold?5:2;
+  if(k==='H'||k==='Cl'||k==='Na')atom(p.g,k,0,0,sw);
+  if(k==='OH'){atom(p.g,'O',0,0,sw);atom(p.g,'H',22,-19,sw);}
+  if(k==='H2O'){atom(p.g,'O',0,0,sw);atom(p.g,'H',22,-19,sw);atom(p.g,'H',-22,-19,sw);}
+  const sg={H:'+',Na:'+',Cl:'−',OH:'−'}[k];
+  if(sg){
+    const r=k==='OH'?R.O:R[k];
+    p.badge=txt(p.g,sg,k==='OH'?-r-2:r+1,-r+1,{class:'chg'});
+    p.badge.style.opacity=p.ion?1:0;
+  }
+}
+function mk(kind){
+  const p={kind,g:el('g',{},pl),pos:[-60,-60],home:null,anim:null,wob:Math.random()*6.3,ws:0.8+Math.random()*0.5,wobT:0,loc:'none',ion:false};
+  build(p);parts.push(p);return p;
+}
+function setIon(p,v){p.ion=v;if(p.badge)p.badge.style.opacity=v?1:0;}
+function go(p,segs,onDone){p.anim={segs,i:0,t0:performance.now(),from:p.pos.slice(),onDone};}
+function res(p,to){return to==='home'?homePos(p.home):(typeof to==='function'?to():to);}
+function ring(pt,col,r0,dur){
+  const c=el('circle',{cx:pt[0],cy:pt[1],r:r0||22,fill:'none',stroke:col||'#E5534B','stroke-width':7},pl);
+  tween(0,1,dur||700,easeOut,v=>{c.setAttribute('r',(r0||22)+40*v);c.setAttribute('opacity',1-v);c.setAttribute('stroke-width',7-5*v);},()=>c.remove());
+}
+function pop(p){tween(0,1,520,easeOut,v=>{p.scale=1+0.45*Math.sin(Math.PI*v);},()=>{p.scale=1;});}
+function pickLowSlot(){const j=Math.floor(Math.random()*lowFree.length);const i=lowFree[j];lowFree.splice(j,1);return LOWSLOTS[i];}
+
+// ---- 設定画面 ----
+function renderOrient(){
+  topChem=topIsAcid?ACID:BASE; bottomChem=topIsAcid?BASE:ACID;
+  $('oTop').textContent=topChem.label;
+  $('oBottom').textContent=bottomChem.label;
+}
+$('swapBtn').onclick=()=>{topIsAcid=!topIsAcid;renderOrient();};
+$('startBtn').onclick=()=>{
+  renderOrient();
+  $('setup').classList.add('hidden');$('play').classList.remove('hidden');
+  $('subtitle').textContent=`上：${topChem.label}／下：${bottomChem.label}`;
+  reset();window.scrollTo(0,0);
+};
+$('back').onclick=()=>{$('play').classList.add('hidden');$('setup').classList.remove('hidden');window.scrollTo(0,0);};
+renderOrient();
+
+// ---- 準備 ----
+// 酸(塩酸)は「もともと液体にとけている」ので粒がバラバラに現れる
+// 塩基(水酸化ナトリウム)は「固形が投入されて溶ける」ので、かたまり→分散のアニメーション
+function doPrep(){
+  stage='busy';setButtons();setEq('prep');
+  upLab.textContent=topChem.sol;
+  const afterTop=()=>{
+    lowLab.textContent=bottomChem.sol;
+    const afterBottom=()=>{stepsDone=1;stage='prepared';setEq('prepared');setButtons();};
+    if(bottomChem.kind==='acid')fillBottomAcid(afterBottom);else fillBottomBase(afterBottom);
+  };
+  if(topChem.kind==='acid')fillTopAcid(afterTop);else fillTopBase(afterTop);
+}
+function fillTopAcid(onDone){ // 酸が上：液体が粒として次々あらわれる
+  const slots=shuffle(UPSLOTS.map(s=>[s[0]+rnd(-2,2),s[1]+rnd(-2,2)]));
+  for(let i=0;i<TOP_N;i++)at(i*300,()=>{
+    const x=X0+50+Math.random()*150, ey=Y0+100;
+    const set=[[mk(topChem.cation),-12],[mk(topChem.anion),12]];
+    set.forEach(([p],j)=>p.home={sp:'up',p:slots[2*i+j]});
+    set.forEach(([p,dx])=>{
+      p.pos=[x+dx,-30];
+      go(p,[
+        {to:[x+dx,ey],dur:560,ease:easeIn,cb:()=>{p.loc='up';setIon(p,true);}},
+        {to:'home',dur:1000,ease:easeOut}
+      ]);
+    });
+  });
+  at((TOP_N-1)*300+1600,onDone);
+}
+function fillTopBase(onDone){ // 塩基が上：固形のかたまりが中央に現れて、溶けて広がる
+  const slots=shuffle(UPSLOTS.map(s=>[s[0]+rnd(-2,2),s[1]+rnd(-2,2)]));
+  const cx=X0+127,cy=Y0+95;
+  const cells=[];
+  for(let i=0;i<TOP_N;i++){
+    const cat=mk(topChem.cation),an=mk(topChem.anion);
+    const ox=(i-(TOP_N-1)/2)*20;
+    cat.pos=[cx+ox,cy-10];an.pos=[cx+ox,cy+10];
+    cat.g.setAttribute('opacity',0);an.g.setAttribute('opacity',0);
+    cells.push({cat,an,idx:i});
+  }
+  tween(0,1,300,lin,v=>cells.forEach(c=>{c.cat.g.setAttribute('opacity',v);c.an.g.setAttribute('opacity',v);}));
+  const order=shuffle(cells);
+  order.forEach(({cat,an,idx},i)=>at(700+i*260,()=>{
+    cat.home={sp:'up',p:slots[2*idx]};cat.loc='up';setIon(cat,true);
+    an.home={sp:'up',p:slots[2*idx+1]};an.loc='up';setIon(an,true);
+    go(cat,[{to:'home',dur:900,ease:easeOut}]);
+    go(an,[{to:'home',dur:900,ease:easeOut}]);
+  }));
+  at(700+(order.length-1)*260+950,onDone);
+}
+function fillBottomAcid(onDone){ // 酸が下：液体としてすでにバラバラに広がった状態で現れる
+  const cells=[];
+  for(let i=0;i<BOTTOM_N;i++)cells.push({cat:mk(bottomChem.cation),an:mk(bottomChem.anion)});
+  const order=shuffle(cells);
+  order.forEach(({cat,an},i)=>at(i*260,()=>{
+    [cat,an].forEach(p=>{
+      const s=jit(pickLowSlot());
+      p.pos=[s[0]+rnd(-14,14),s[1]+rnd(-14,14)];
+      p.g.setAttribute('opacity',0);
+      p.home={sp:'low',p:s};p.loc='low';setIon(p,true);
+      go(p,[{to:'home',dur:500,ease:easeOut}]);
+      tween(0,1,400,lin,v=>p.g.setAttribute('opacity',v));
+    });
+  }));
+  at((order.length-1)*260+700,onDone);
+}
+function fillBottomBase(onDone){ // 塩基が下：固形のかたまりが投入されて溶ける
+  const rows=2, cx=LCX;
+  const startY=474, restY=667-(rows-1)*22, cells=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<BOTTOM_N;c++){
+    const p=mk(r===0?bottomChem.cation:bottomChem.anion);
+    const ox=(c-(BOTTOM_N-1)/2)*44, oy=(r-(rows-1)/2)*44;
+    p.pos=[cx+ox,startY+oy];p.g.setAttribute('opacity',0);
+    cells.push({p,ox,oy});
+  }
+  tween(0,1,250,lin,v=>cells.forEach(c=>c.p.g.setAttribute('opacity',v)));
+  cells.forEach(({p,ox,oy})=>go(p,[{to:[cx+ox,startY+oy],dur:250,ease:lin},{to:[cx+ox,restY+oy],dur:650,ease:easeIn}]));
+  const order=cells.slice().sort((a,b)=>Math.hypot(b.ox,b.oy)-Math.hypot(a.ox,a.oy));
+  order.forEach(({p},i)=>at(1100+i*110,()=>{
+    p.home={sp:'low',p:jit(pickLowSlot())};
+    p.loc='low';setIon(p,true);
+    go(p,[{to:'home',dur:900,ease:easeOut}]);
+  }));
+  at(1100+(order.length-1)*110+950,onDone);
+}
+
+// ---- 中和（1クリック＝1滴）----
+function topmostOf(kind){
+  let best=null,by=1e9;
+  for(const p of parts)if(p.loc==='up'&&p.kind===kind){const y=homePos(p.home)[1];if(y<by){by=y;best=p;}}
+  return best;
+}
+function clickNeutral(){
+  if(stage!=='prepared'||dropping||dropsDone>=TOP_N)return;
+  dropping=true;setButtons();
+  dropsDone++;
+  if(dropsDone===1){$('banner').textContent='中和開始';setEq('neutral');}
+  tween(0,-30,380,easeInOut,v=>upA=v);
+  at(280,()=>tween(0,.8,140,lin,v=>streamOp=v));
+  at(1250,()=>tween(-30,0,480,easeInOut,v=>upA=v));
+  at(1250,()=>tween(.8,0,220,lin,v=>streamOp=v));
+  at(300,()=>releaseOneUnit(onDropCycleDone));
+}
+function onDropCycleDone(){
+  dropping=false;
+  if(h2oCount>=BOTTOM_N&&!reachedComplete){reachedComplete=true;$('banner').textContent='完全中和';fadeNeutralEq(false);}
+  else if(reachedComplete&&dropsDone>BOTTOM_N){
+    $('banner').textContent = topChem.kind==='acid' ? '塩酸が余ってきた（酸性へ）' : '水酸化ナトリウムが余ってきた（アルカリ性へ）';
+    fadeNeutralEq(true);
+  }
+  $('counter').textContent=`${dropsDone} / ${TOP_N} 滴 投入ずみ（水 ${h2oCount} 個できた）`;
+  if(dropsDone>=TOP_N)stepsDone=2;
+  setButtons();
+}
+function releaseOneUnit(onAllDone){
+  const c=topmostOf(topChem.cation), a=topmostOf(topChem.anion);
+  let pending=0;
+  const done=()=>{pending--;if(pending<=0)onAllDone();};
+  if(c){pending++;pourOne(c,0,done);}
+  if(a){pending++;pourOne(a,150,done);}
+  if(pending===0)onAllDone();
+}
+function pourOne(p,delay,onDone){
+  at(delay,()=>{
+    p.loc='air';
+    const fx=X0-9+rnd(-3,3);
+    go(p,[
+      {to:()=>upWorld([-7,-4]),dur:240,ease:easeInOut},
+      {to:()=>[fx,lowLv+22],dur:440,ease:easeIn,cb:()=>{
+        p.loc='low';p.home=null;
+        lowTarget=LV0-(LV0-LV1)*dropsDone/TOP_N;
+      }}
+    ],()=>afterLand(p,onDone));
+  });
+}
+function afterLand(p,onDone){
+  const want=p.kind==='H'?'OH':(p.kind==='OH'?'H':null);
+  let partner=null,bd=1e9;
+  if(want)for(const q of parts)if(q.kind===want&&!q.res&&q.loc==='low'){
+    const d=Math.hypot(q.pos[0]-p.pos[0],q.pos[1]-p.pos[1]);if(d<bd){bd=d;partner=q;}
+  }
+  if(!partner){
+    p.home={sp:'low',p:jit(pickLowSlot())};
+    go(p,[{to:'home',dur:850,ease:easeOut}],onDone);
+    return;
+  }
+  partner.res=true;
+  go(p,[{to:()=>[partner.pos[0]-22,partner.pos[1]-19],dur:650,ease:easeInOut}],()=>{
+    p.dead=true;p.loc='gone';p.g.remove();
+    partner.kind='H2O';partner.ion=false;partner.bold=true;build(partner);
+    ring(partner.pos,'#1F9BC0',26);pop(partner);
+    h2oCount++;
+    onDone&&onDone();
+  });
+}
+
+// ---- 蒸発（いつでも実行可・その時点の状態から計算）----
+function doEvap(){
+  if(!(stage==='prepared')||dropping)return;
+  stage='evaporating';setButtons();
+  setEq('evap');
+  tween(0,1,400,lin,v=>fl.setAttribute('opacity',v));
+  const of=k=>parts.filter(p=>p.kind===k&&p.loc==='low');
+  const ws=shuffle(of('H2O')),wN=ws.length;let ev=0;
+  ws.forEach((w,i)=>at(700+i*400,()=>{
+    w.loc='vapor';w.home=null;ev++;
+    lowTarget=LV1+(LB.bot+8-LV1)*ev/Math.max(1,wN);
+    go(w,[{to:[w.pos[0]+rnd(-25,25),360],dur:1400,ease:easeInOut,fade:true}],()=>{w.dead=true;w.g.remove();});
+  }));
+  const waterEnd=700+Math.max(0,wN-1)*400+1400;
+  const cs=700+Math.ceil(wN/2)*400;
+
+  const cats=shuffle(of('Na')),ans=shuffle(of('Cl')),ohs=shuffle(of('OH')),hs=shuffle(of('H'));
+  const uSalt=Math.min(cats.length,ans.length);
+  const uBase=Math.min(cats.length-uSalt,ohs.length);
+  const w=44,dy=44,bottom=667;
+  const maxSpanAvail=Math.max(80,(LB.x2-LB.x1)-40);
+  let GAP=(uSalt&&uBase)?90:0;
+  let span=Math.max(0,uSalt+uBase-1)*w+GAP;
+  if(span>maxSpanAvail){GAP=Math.max(30,GAP-(span-maxSpanAvail));span=Math.max(0,uSalt+uBase-1)*w+GAP;}
+  const usableHalf=Math.max(30,(LB.x2-LB.x1)/2-30);
+  let x=Math.max(LCX-usableHalf,Math.min(LCX+usableHalf-span,LCX-span/2)); const cols=[];
+  for(let c=0;c<uSalt+uBase;c++){if(c===uSalt)x+=GAP;cols.push(x);x+=w;}
+
+  const movers=[];
+  for(let u=0;u<uSalt;u++){const cx=cols[u],topY=bottom-2*dy;movers.push([cats[u],[cx,topY]]);movers.push([ans[u],[cx,topY+dy]]);}
+  for(let u=0;u<uBase;u++){const cx=cols[uSalt+u],topY=bottom-2*dy;movers.push([cats[uSalt+u],[cx,topY]]);movers.push([ohs[u],[cx,topY+dy]]);}
+  shuffle(movers).forEach(([p,pt],i)=>at(cs+i*100,()=>{
+    if(!p||!pt)return;
+    p.home=null;
+    go(p,[{to:pt,dur:900,ease:easeInOut}],()=>{p.home={sp:'abs',p:pt};p.solid=true;p.loc='solid';setIon(p,false);});
+  }));
+  const crystalEnd=cs+Math.max(0,movers.length-1)*100+900;
+
+  let gasEnd=0,gasI=0;
+  const leftoverCl=ans.slice(uSalt);
+  const escapedPairs=[];
+  leftoverCl.forEach((c,idx)=>{
+    const h=hs[idx];if(!h)return;
+    escapedPairs.push(1);
+    const t0=cs+gasI*280;gasI++;gasEnd=Math.max(gasEnd,t0+2000);
+    at(t0,()=>{
+      c.home=null;h.home=null;
+      go(c,[{to:()=>c.pos,dur:600}]);
+      go(h,[
+        {to:()=>[c.pos[0]-24,c.pos[1]],dur:600,ease:easeInOut,cb:()=>{setIon(h,false);setIon(c,false);h.loc=c.loc='vapor';}},
+        {to:()=>[c.pos[0]-24,c.pos[1]],dur:1300,fade:true}
+      ],()=>{h.dead=true;h.g.remove();});
+      at(600,()=>go(c,[{to:[c.pos[0]+rnd(-20,20),360],dur:1300,ease:easeInOut,fade:true}],()=>{c.dead=true;c.g.remove();}));
+    });
+  });
+
+  at(crystalEnd,()=>{
+    const ls=[];
+    const putLines=(lines,cx,ybase)=>{
+      const lh=18;
+      lines.forEach((t,i)=>{
+        const w2=t.length*16,px=Math.min(LB.x2-8-w2/2,Math.max(LB.x1+8+w2/2,cx));
+        const y=ybase-(lines.length-1-i)*lh;
+        ls.push(txt(pl,t,px,y,{class:'nlbl','text-anchor':'middle',fill:INK,opacity:0,style:'font-size:15px'}));
+      });
+    };
+    const mid=(i0,n)=>(cols[i0]+cols[i0+n-1])/2;
+    const sY=bottom-2*dy-30;
+    if(uSalt)putLines(['塩化','ナトリウム'],mid(0,uSalt),sY);
+    if(uBase)putLines(['水酸化','ナトリウム'],mid(uSalt,uBase),sY);
+    tween(0,1,400,lin,v=>ls.forEach(l=>l.setAttribute('opacity',v)));
+  });
+
+  at(Math.max(waterEnd,crystalEnd,gasEnd)+300,()=>{
+    tween(1,0,500,lin,v=>fl.setAttribute('opacity',v));
+    let cap;
+    if(uSalt&&uBase)cap='塩化ナトリウムと水酸化ナトリウムが両方、固体で残った';
+    else if(uSalt&&!escapedPairs.length)cap='塩化ナトリウムの結晶だけが残った（ちょうど中和していた）';
+    else if(uSalt)cap='塩化ナトリウムだけが残った。余った塩酸は気体になって出ていった';
+    else if(uBase)cap='水酸化ナトリウムだけが残った（中和が起きなかった分）';
+    else cap='何も残らなかった（すべて気体になって出ていった）';
+    lowLab.textContent=cap;
+    $('cap').innerHTML=cap;
+    $('formula').innerHTML='HCl ＋ NaOH → NaCl ＋ H<sub>2</sub>O';
+    $('banner').textContent='';
+    finalMassLines=[];
+    if(uSalt)finalMassLines.push({text:'塩化ナトリウム',size:24},{text:(uSalt*MOLAR.NaCl).toFixed(1)+' mg',size:37,color:'#E5534B'});
+    if(uBase)finalMassLines.push({text:'水酸化ナトリウム',size:24},{text:(uBase*MOLAR.NaOH).toFixed(1)+' mg',size:37,color:'#3F6FD8'});
+    if(!finalMassLines.length)finalMassLines=[{text:'何も残らない',size:16}];
+    stage='done';setButtons();
+  });
+}
+
+// ---- 文言 ----
+function setEq(k){
+  const HP='H<sup>+</sup>',OHM='OH<sup>−</sup>',H2O='H<sub>2</sub>O';
+  $('cap').style.color='';$('formula').style.color='';
+  if(k==='idle'){$('cap').innerHTML='「準備」を押そう';$('formula').innerHTML='';}
+  if(k==='prep'){$('cap').innerHTML='つぶがバラバラに分かれて水全体に広がる。これが「溶解」';$('formula').innerHTML=topChem.ionEq+'<br>'+bottomChem.ionEq;}
+  if(k==='prepared'){$('cap').innerHTML='';$('formula').innerHTML=topChem.ionEq+'<br>'+bottomChem.ionEq;}
+  if(k==='neutral'){$('cap').innerHTML='酸とアルカリが出会うと水になる。これが「中和」';$('formula').innerHTML=`${HP} ＋ ${OHM} → ${H2O}`;}
+  if(k==='evap'){$('cap').innerHTML='水を蒸発させると、とけていたつぶが結びついて固体になって出てくる';$('formula').innerHTML='';}
+}
+function fadeNeutralEq(fade){
+  const c=fade?'#9AA8B5':'';
+  $('cap').style.color=c;$('formula').style.color=c;
+}
+
+// ---- ボタン状態 ----
+function setButtons(){
+  const bPrep=$('bPrep'),bNeu=$('bNeu'),bEva=$('bEva');
+  bPrep.disabled=stage!=='idle';
+  bPrep.classList.toggle('next',stage==='idle');
+  bPrep.classList.toggle('did',stage!=='idle');
+  const neuActive=stage==='prepared'&&!dropping&&dropsDone<TOP_N;
+  bNeu.disabled=!neuActive;
+  bNeu.classList.toggle('next',neuActive);
+  bNeu.classList.toggle('did',dropsDone>0);
+  const evaActive=(stage==='prepared')&&!dropping;
+  bEva.disabled=!evaActive;
+  bEva.classList.toggle('next',evaActive&&!bNeu.classList.contains('next')?true:evaActive);
+  bEva.classList.toggle('did',stage==='evaporating'||stage==='done');
+  $('btns').classList.toggle('hidden',stage==='done');
+  $('again').classList.toggle('hidden',stage!=='done');
+  if(stage==='done')$('again').focus({preventScroll:true});
+}
+
+function upTarget(){
+  const remain=Math.max(0,TOP_N-dropsDone);
+  const frac=remain/TOP_N;
+  const bottomOut=Math.max(...[[0,0],[UW,0],[0,UH],[UW,UH]].map(q=>upWorld(q)[1]))+8;
+  return frac<=0?bottomOut:UPLV+(bottomOut-UPLV)*(1-frac)*0.85;
+}
+
+// ---- ループ ----
+function frame(t){
+  tweens=tweens.filter(tw=>{
+    const k=Math.min(1,Math.max(0,(t-tw.t0)/tw.dur));tw.set(tw.from+(tw.to-tw.from)*tw.ease(k));
+    if(k>=1){tw.done&&tw.done();return false;}return true;
+  });
+  for(const p of parts){
+    if(p.dead)continue;
+    if(p.anim){
+      const A=p.anim,s=A.segs[A.i];
+      const k=Math.min(1,Math.max(0,(t-A.t0)/Math.max(1,s.dur)));
+      const tgt=res(p,s.to);
+      p.pos=lerp(A.from,tgt,(s.ease||easeInOut)(k));
+      if(s.fade)p.g.setAttribute('opacity',(1-k).toFixed(2));
+      if(k>=1){
+        if(s.cb)s.cb();
+        A.i++;A.from=tgt;A.t0=t;
+        if(A.i>=A.segs.length){p.anim=null;p.wobT=t;if(A.onDone)A.onDone();}
+      }
+    }else if(p.home){
+      const h=homePos(p.home),amp=p.solid?0:WOB*Math.min(1,(t-p.wobT)/500),w=p.ws||1;
+      p.pos=[h[0]+Math.sin(t/(560*w)+p.wob)*amp+Math.sin(t/(1500*w)+p.wob*2)*amp*.5,
+             h[1]+Math.cos(t/(700*w)+p.wob*1.3)*amp+Math.cos(t/(1900*w)+p.wob)*amp*.4];
+    }
+    const sc=p.scale&&p.scale!==1?` scale(${p.scale.toFixed(3)})`:'';
+    p.g.setAttribute('transform',`translate(${p.pos[0].toFixed(1)},${p.pos[1].toFixed(1)})`+sc);
+  }
+  parts=parts.filter(p=>!p.dead);
+
+  const tr=`translate(${X0},${Y0}) rotate(${upA.toFixed(2)})`;
+  upBack.setAttribute('transform',tr);upFront.setAttribute('transform',tr);
+  upRot.setAttribute('transform',`rotate(${(-upA).toFixed(2)})`);
+  upLv+=(upTarget()-upLv)*0.15;upLiq.setAttribute('y',(upLv-Y0).toFixed(1));
+  lowLv+=(lowTarget-lowLv)*0.08;
+  lowLiq.setAttribute('y',lowLv.toFixed(1));lowLiq.setAttribute('height',Math.max(0,LB.bot+10-lowLv).toFixed(1));
+  const cy=Math.max(HALF,lowLv);cloudRect.setAttribute('y',cy.toFixed(1));cloudRect.setAttribute('height',Math.max(0,LB.bot+10-cy).toFixed(1));
+  const sp=upWorld([-8,-5]);
+  stream.setAttribute('d',`M${sp[0].toFixed(1)},${sp[1].toFixed(1)} Q${(sp[0]-6).toFixed(1)},${(sp[1]+6).toFixed(1)} ${X0-9},${(sp[1]+30).toFixed(1)} L${X0-9},${(lowLv+2).toFixed(1)}`);
+  stream.setAttribute('opacity',streamOp.toFixed(2));
+
+  // 液性ラベル（常に表示）
+  let uh=0,uoh=0,loh=0,lh=0;
+  for(const p of parts)if(p.ion){
+    if(p.loc==='up'&&p.kind==='H')uh++;
+    if(p.loc==='up'&&p.kind==='OH')uoh++;
+    if(p.loc==='low'&&p.kind==='OH')loh++;
+    if(p.loc==='low'&&p.kind==='H')lh++;
+  }
+  upPill(topChem.cation==='H'?(uh?'酸性':'中性'):(uoh?'アルカリ性':'中性'));
+  lowPill(loh?'アルカリ性':(lh?'酸性':'中性'));
+
+  const showMass=stage!=='idle'&&stage!=='done';
+  if(showMass){
+    massBox.setAttribute('opacity',1);
+    const sig='live:'+evapNowMass().toFixed(1);
+    if(sig!==lastMassSig){lastMassSig=sig;
+      renderMassBox([
+        {text:'いま水を',size:24,weight:700,color:'#5B7190'},
+        {text:'蒸発させると',size:24,weight:700,color:'#5B7190'},
+        {text:evapNowMass().toFixed(1)+' mg',size:37,weight:900},
+        {text:'残る',size:24,weight:700,color:'#5B7190'}
+      ]);
+    }
+  }else if(stage==='done'){
+    massBox.setAttribute('opacity',1);
+    const sig='final:'+JSON.stringify(finalMassLines);
+    if(sig!==lastMassSig){lastMassSig=sig;renderMassBox(finalMassLines);}
+  }else{
+    massBox.setAttribute('opacity',0);
+  }
+
+  requestAnimationFrame(frame);
+}
+
+function reset(){
+  timers.forEach(clearTimeout);timers=[];tweens=[];
+  pl.innerHTML='';parts=[];
+  upA=0;upLv=UPLV;lowLv=lowTarget=LV0;streamOp=0;
+  dropsDone=0;h2oCount=0;reachedComplete=false;dropping=false;
+  lowFree=LOWSLOTS.map((s,i)=>i);
+  fl.setAttribute('opacity',0);
+  upLab.textContent='水';lowLab.textContent='水';
+  $('banner').textContent='';$('counter').textContent='';
+  lastMassSig='';finalMassLines=[];
+  stage='idle';stepsDone=0;setEq('idle');setButtons();
+}
+
+$('bPrep').onclick=()=>{if(stage==='idle')doPrep();};
+$('bNeu').onclick=clickNeutral;
+$('bEva').onclick=doEvap;
+$('resetBtn').onclick=reset;
+$('again').onclick=reset;
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
