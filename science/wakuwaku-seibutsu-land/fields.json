@@ -61,13 +61,28 @@
     "name": "消化と吸収",
     "questionsFile": "questions/shoka_to_kyushu.json",
     "prizeDir": "prizes/shoka_to_kyushu",
-    "prizeImages": []
+    "prizeImages": [
+      "Gemini_Generated_Image_.jfif",
+      "Gemini_Generated_Image_ (1).jfif",
+      "Gemini_Generated_Image_ (2).jfif",
+      "Gemini_Generated_Image_ (3).jfif",
+      "Gemini_Generated_Image_ (4).jfif"
+    ]
   },
   {
     "id": "kokyu_junkan",
     "name": "呼吸・循環",
     "questionsFile": "questions/kokyu_junkan.json",
     "prizeDir": "prizes/kokyu_junkan",
-    "prizeImages": []
+    "prizeImages": [
+      "Gemini_Generated_Image_.jfif",
+      "Gemini_Generated_Image_ (1).jfif",
+      "Gemini_Generated_Image_ (2).jfif",
+      "Gemini_Generated_Image_ (3).jfif",
+      "Gemini_Generated_Image_ (4).jfif",
+      "Gemini_Generated_Image_ (5).jfif",
+      "Gemini_Generated_Image_ (6).jfif",
+      "Gemini_Generated_Image_ (7).jfif"
+    ]
   }
 ]
