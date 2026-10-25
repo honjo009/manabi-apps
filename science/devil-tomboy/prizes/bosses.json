@@ -1,0 +1,11 @@
+[
+  {"id": "boss01", "name": "アクア・センチュリオン", "file": "boss01.jpg"},
+  {"id": "boss02", "name": "バネオス・マグナ", "file": "boss02.jpg"},
+  {"id": "boss03", "name": "スケール・デストロイヤー", "file": "boss03.jpg"},
+  {"id": "boss04", "name": "チョウチンアンコウ", "file": "boss04.jpg"},
+  {"id": "boss05", "name": "メンダコ・メンダコ", "file": "boss05.jpg"},
+  {"id": "boss06", "name": "スプリング・バランス", "file": "boss06.jpg"},
+  {"id": "boss07", "name": "リュウグウノツカイ", "file": "boss07.jpg"},
+  {"id": "boss08", "name": "蒸圧の重将", "file": "boss08.jpg"},
+  {"id": "boss09", "name": "クラウンオブアルキメデス", "file": "boss09.jpg"}
+]
